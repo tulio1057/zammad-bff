@@ -1,0 +1,31 @@
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(1).max(128),
+});
+
+const createTicketSchema = z.object({
+  title:       z.string().min(3).max(200).trim(),
+  body:        z.string().min(10).max(10000).trim(),
+  category:    z.string().max(100).trim().optional(),
+  subcategory: z.string().max(100).trim().optional(),
+  priority:    z.enum(['1', '2', '3']).optional().default('2'),
+});
+
+function validate(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: result.error.flatten().fieldErrors,
+      });
+    }
+    req.body = result.data;
+    next();
+  };
+}
+
+export const validateLogin = validate(loginSchema);
+export const validateCreateTicket = validate(createTicketSchema);
