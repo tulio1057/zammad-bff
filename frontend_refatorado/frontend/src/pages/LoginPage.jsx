@@ -4,7 +4,7 @@ import { login } from '../services/auth.service.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { user, loading, setUser } = useAuth();
+  const { user, loading, setUser, setZammadUrl } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -19,6 +19,10 @@ export default function LoginPage() {
 
     try {
       const data = await login(form.email, form.password);
+
+      if (data.zammadUrl) {
+        setZammadUrl(data.zammadUrl);
+      }
 
       if (data.isAdmin && data.zammadUrl) {
         window.location.href = data.zammadUrl;

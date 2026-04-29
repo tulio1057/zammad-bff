@@ -3,14 +3,20 @@ import { getMe, logout as apiLogout } from '../services/auth.service.js';
 
 const AuthContext = createContext(null);
 
-const initialState = { user: null, loading: true, error: null };
+const initialState = { user: null, zammadUrl: localStorage.getItem('zammad_url'), loading: true, error: null };
 
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_USER': return { ...state, user: action.payload, loading: false, error: null };
+    case 'SET_ZAMMAD_URL': 
+      if (action.payload) localStorage.setItem('zammad_url', action.payload);
+      else localStorage.removeItem('zammad_url');
+      return { ...state, zammadUrl: action.payload };
     case 'SET_ERROR': return { ...state, error: action.payload, loading: false };
     case 'SET_LOADING': return { ...state, loading: action.payload };
-    case 'LOGOUT': return { user: null, loading: false, error: null };
+    case 'LOGOUT': 
+      localStorage.removeItem('zammad_url');
+      return { user: null, zammadUrl: null, loading: false, error: null };
     default: return state;
   }
 }
@@ -44,8 +50,12 @@ export function AuthProvider({ children }) {
     dispatch({ type: 'SET_USER', payload: user });
   }, []);
 
+  const setZammadUrl = useCallback((url) => {
+    dispatch({ type: 'SET_ZAMMAD_URL', payload: url });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...state, logout, setUser, loadUser }}>
+    <AuthContext.Provider value={{ ...state, logout, setUser, setZammadUrl, loadUser }}>
       {children}
     </AuthContext.Provider>
   );

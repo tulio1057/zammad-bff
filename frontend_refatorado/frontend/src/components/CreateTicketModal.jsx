@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createTicket } from '../services/ticket.service.js';
 
-const CATEGORIES = {
+export const CATEGORIES = {
   'Residencial':           ['Instalação', 'Manutenção', 'Vazamento', 'Medidor', 'Outros'],
   'Industrial':            ['Instalação', 'Manutenção', 'Emergência', 'Contrato', 'Outros'],
   'Comercial':             ['Instalação', 'Manutenção', 'Faturamento', 'Outros'],
