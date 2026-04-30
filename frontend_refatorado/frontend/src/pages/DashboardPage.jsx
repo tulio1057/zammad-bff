@@ -8,7 +8,6 @@ import TicketList from "../components/TicketList.jsx";
 
 const ABAS_CHAMADOS = [
   { chave: "meus", rotulo: "Meus Chamados" },
-  { chave: "semDono", rotulo: "Sem Dono" },
   { chave: "todas", rotulo: "Todas" },
   { chave: "abertos", rotulo: "Abertos" },
   { chave: "concluidos", rotulo: "Concluídos" },
@@ -63,7 +62,6 @@ function chamadoCriadoAte48h(chamado) {
 
 function filtrarPorAba(chamado, abaAtual, user) {
   if (abaAtual === "meus") return chamadoDoUsuario(chamado, user);
-  if (abaAtual === "semDono") return chamadoSemDono(chamado);
   if (abaAtual === "abertos") return chamadoAberto(chamado);
   if (abaAtual === "concluidos") return chamadoConcluido(chamado);
   return true;
