@@ -64,6 +64,7 @@ export async function createTicket({
   groupId = 1,
   category,
   subcategory,
+  group,
   priorityId = 2,
 }) {
   const { data } = await zammadClient.post("/tickets", {
@@ -71,7 +72,8 @@ export async function createTicket({
     group_id: groupId,
     customer_id: customerId,
     priority_id: priorityId,
-    // Categoria e subcategoria via campos customizados do Zammad (ajuste os nomes conforme sua instância)
+    // Categoria, subcategoria e grupo via campos customizados do Zammad
+    ...(group ? { group: group } : {}),
     ...(category ? { category: category } : {}),
     ...(subcategory ? { subcategory: subcategory } : {}),
     article: {
@@ -89,4 +91,49 @@ export async function getUserByEmail(email) {
     params: { query: email, limit: 1 },
   });
   return data?.[0] ?? null;
+}
+
+/**
+ * Busca as categorias, subcategorias e grupos disponíveis no Zammad
+ * Retorna estrutura com opções para o formulário
+ */
+export async function getTicketFields() {
+  try {
+    // Busca os grupos
+    const groupsResponse = await zammadClient.get("/groups");
+    const groups = groupsResponse.data
+      .filter(g => g.active === true)
+      .map(g => g.name)
+      .sort();
+
+    logger.info({ groups }, "Loaded groups");
+
+    // Busca os atributos do ticket para pegar subcategorias
+    const { data } = await zammadClient.get("/object_manager_attributes", {
+      params: { object: "Ticket" },
+    });
+
+    const result = {
+      groups,
+      categories: {},
+      subcategories: {},
+    };
+
+    // Processa os campos customizados para encontrar subcategorias
+    for (const field of data) {
+      if (field.name === "subcategoryti" && field.data_option?.options) {
+        // Converte para formato de lista
+        result.subcategories = Object.entries(field.data_option.options).map(([key, value]) => ({
+          id: key,
+          name: value
+        }));
+        logger.info({ subcategoriesCount: result.subcategories.length }, "Loaded subcategories");
+      }
+    }
+
+    return result;
+  } catch (err) {
+    logger.error({ error: err.message, status: err.response?.status }, "Error fetching ticket fields");
+    return { groups: [], categories: {}, subcategories: {} };
+  }
 }

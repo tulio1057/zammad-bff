@@ -47,6 +47,11 @@ export default function TicketDetailPage() {
         <div className="ticket-meta">
           <span>Nº {ticket.number}</span>
           <span>Criado em {new Date(ticket.created_at).toLocaleString('pt-BR')}</span>
+          {(ticket.category || ticket.subcategory) && (
+            <span>
+              {[ticket.category, ticket.subcategory].filter(Boolean).join(' › ')}
+            </span>
+          )}
         </div>
 
         <div className="articles">
