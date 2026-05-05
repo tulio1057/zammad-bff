@@ -13,6 +13,18 @@ const createTicketSchema = z.object({
   priority:    z.enum(['1', '2', '3']).optional().default('2'),
 });
 
+const changeStatusSchema = z.object({
+  status: z.enum(['aberto', 'em_andamento', 'aguardando', 'finalizado']),
+});
+
+const addUpdateSchema = z.object({
+  message: z.string().min(3).max(5000).trim(),
+});
+
+const chatMessageSchema = z.object({
+  content: z.string().min(1).max(2000).trim(),
+});
+
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -29,3 +41,6 @@ function validate(schema) {
 
 export const validateLogin = validate(loginSchema);
 export const validateCreateTicket = validate(createTicketSchema);
+export const validateChangeStatus = validate(changeStatusSchema);
+export const validateAddUpdate = validate(addUpdateSchema);
+export const validateChatMessage = validate(chatMessageSchema);

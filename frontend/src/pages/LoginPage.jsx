@@ -26,7 +26,8 @@ export default function LoginPage() {
       }
 
       setUser(data.user);
-      navigate('/dashboard', { replace: true });
+      const destination = data.user.role === 'technician' ? '/tech' : '/dashboard';
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
     } finally {

@@ -601,3 +601,204 @@ body {
   color: var(--gray-600);
 }
  
+/* ── Status badges locais ── */
+.badge-status-local-aberto       { background: #dbeafe; color: #1d4ed8; }
+.badge-status-local-em_andamento { background: #fef9c3; color: #b45309; }
+.badge-status-local-aguardando   { background: #ede9fe; color: #6d28d9; }
+.badge-status-local-finalizado   { background: #dcfce7; color: #15803d; }
+
+/* ── Status tabs ── */
+.status-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--gray-200);
+  padding-bottom: 0;
+}
+
+.status-tab {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+}
+
+.status-tab:hover { color: var(--blue); }
+.status-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ── Tech actions ── */
+.tech-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+/* ── Tech detail grid ── */
+.tech-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  align-items: start;
+}
+
+.tech-detail-left  { min-width: 0; }
+.tech-detail-right { position: sticky; top: 80px; }
+
+/* ── Updates ── */
+.updates-list { margin-top: 16px; }
+
+.update-item {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.update-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+}
+
+.update-header strong { color: var(--gray-800); }
+
+.update-status-change {
+  display: inline-block;
+  font-size: 12px;
+  background: var(--gray-100);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+  color: var(--gray-600);
+}
+
+.update-item p { font-size: 14px; color: var(--gray-800); }
+
+/* ── Chat Panel ── */
+.chat-panel {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 540px;
+  box-shadow: var(--shadow);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--blue-dark);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chat-status {
+  font-size: 12px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chat-status::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.chat-status.online::before { background: #22c55e; }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--gray-100);
+}
+
+.chat-empty {
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 13px;
+  margin-top: 40px;
+}
+
+.chat-bubble {
+  max-width: 75%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-bubble.mine { align-self: flex-end; align-items: flex-end; }
+.chat-bubble.theirs { align-self: flex-start; align-items: flex-start; }
+
+.bubble-author {
+  font-size: 11px;
+  color: var(--gray-600);
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+.chat-bubble p {
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble.mine p    { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble.theirs p  { background: var(--white); color: var(--gray-800); border-bottom-left-radius: 4px; border: 1px solid var(--gray-200); }
+
+.bubble-time {
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 3px;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.chat-input-area textarea {
+  flex: 1;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.chat-input-area textarea:focus { border-color: var(--blue); }
+
+@media (max-width: 900px) {
+  .tech-detail-grid { grid-template-columns: 1fr; }
+  .tech-detail-right { position: static; }
+}
