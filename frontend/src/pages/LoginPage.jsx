@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { login } from '../services/auth.service.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import SerGasLogo from '../components/SerGasLogo.jsx';
 
 export default function LoginPage() {
   const { user, loading, setUser } = useAuth();
@@ -38,9 +39,10 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <span className="logo-icon">◈</span>
-          <h1>Chamados</h1>
-          <p>Sistema de suporte</p>
+          <span className="login-badge">Companhia Sergipana de Gás</span>
+          <SerGasLogo size="md" />
+          <h1>SERGAS</h1>
+          <p>Plataforma de atendimento interno</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -78,6 +80,16 @@ export default function LoginPage() {
             {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <div className="login-footer">
+          <a href="https://www.sergipegas.com.br" target="_blank" rel="noreferrer">
+            Site institucional
+          </a>
+          <span>•</span>
+          <a href="https://www.instagram.com/sergipegas/" target="_blank" rel="noreferrer">
+            Instagram
+          </a>
+        </div>
       </div>
     </div>
   );

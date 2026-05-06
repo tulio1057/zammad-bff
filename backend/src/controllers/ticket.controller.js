@@ -31,13 +31,27 @@ export async function getTicket(req, res, next) {
 
 export async function createTicket(req, res, next) {
   try {
-    const { title, body, category, subcategory, priority } = req.body;
+    const {
+      title,
+      body,
+      category,
+      subcategory,
+      priority,
+      group,
+      classificationField,
+      classificationValue,
+      ticketAttributes,
+    } = req.body;
     const ticket = await ticketService.createNewTicket({
       title,
       body,
       category,
       subcategory,
       priority,
+      group,
+      classificationField,
+      classificationValue,
+      ticketAttributes,
       user: req.user,
     });
     res.status(201).json(ticket);
@@ -48,8 +62,8 @@ export async function createTicket(req, res, next) {
 
 export async function getTicketFormFields(req, res, next) {
   try {
-    const formFields = await ticketService.getFormFields();
-    res.json(formFields);
+    const fields = await ticketService.getFormFields();
+    res.json(fields);
   } catch (err) {
     next(err);
   }

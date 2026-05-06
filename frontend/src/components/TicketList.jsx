@@ -8,6 +8,11 @@ const STATUS_ORDER = { 1: 0, 2: 1, 3: 2, 6: 3, 4: 4 };
 // priority_id do Zammad: 1=baixa, 2=normal, 3=alta
 const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta' };
 const PRIO_CLASS  = { 1: 'prio prio-low', 2: 'prio prio-med', 3: 'prio prio-high' };
+const STATUS_FILTERS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'open', label: 'Em andamento' },
+  { value: 'resolved', label: 'Resolvidos' },
+];
 
 // Categorias disponíveis
 const CATEGORIES = [
@@ -34,7 +39,8 @@ function sortTickets(tickets) {
 
 export default function TicketList({ tickets, loading, onSelect, onPrev, onNext, page }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [showAll, setShowAll] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   if (loading) return <div className="loading-center">Carregando chamados...</div>;
 
@@ -44,39 +50,61 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
 
   const sorted = sortTickets(tickets);
   
-  // Filtrar por categoria se selecionada
+  // Filtros
   let filtered = sorted;
   if (selectedCategory) {
     filtered = sorted.filter(t => t.category === selectedCategory);
   }
-  
-  // Mostrar apenas recentes se showAll = false
-  const displayed = !showAll && filtered.length > 5 ? filtered.slice(0, 5) : filtered;
-  const hasMore = !showAll && filtered.length > 5;
+  if (statusFilter === 'open') {
+    filtered = filtered.filter((t) => [1, 2, 3].includes(t.state_id));
+  }
+  if (statusFilter === 'resolved') {
+    filtered = filtered.filter((t) => [4, 6].includes(t.state_id));
+  }
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter((t) =>
+      [t.title, t.number, t.category, t.subcategory]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q),
+    );
+  }
 
   return (
     <div className="ticket-list-wrapper">
-      {/* Filtro de Categorias */}
-      <div className="ticket-filters">
-        <div className="filter-section">
-          <label className="filter-label">Filtrar por Categoria:</label>
+      <div className="ticket-toolbar">
+        <div className="ticket-toolbar-search">
+          <input
+            type="search"
+            placeholder="Buscar por número, assunto ou categoria..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="ticket-toolbar-filters">
           <div className="filter-buttons">
-            <button
-              className={`filter-btn ${selectedCategory === null ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(null)}
-            >
-              Todas
-            </button>
-            {CATEGORIES.map((cat) => (
+            {STATUS_FILTERS.map((f) => (
               <button
-                key={cat}
-                className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
+                key={f.value}
+                className={`filter-btn ${statusFilter === f.value ? 'active' : ''}`}
+                onClick={() => setStatusFilter(f.value)}
               >
-                {cat}
+                {f.label}
               </button>
             ))}
           </div>
+          <select
+            className="ticket-category-select"
+            value={selectedCategory ?? ''}
+            onChange={(e) => setSelectedCategory(e.target.value || null)}
+          >
+            <option value="">Todas as categorias</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -91,7 +119,7 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
           </tr>
         </thead>
         <tbody>
-          {displayed.map((t) => {
+          {filtered.map((t) => {
             const prioId = t.priority_id ?? 2;
             return (
               <tr key={t.id} onClick={() => onSelect(t.id)} className="ticket-row">
@@ -121,40 +149,14 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
           })}
         </tbody>
       </table>
-
-      {/* Botão Mostrar Tudo / Mostrar Menos */}
-      {hasMore && (
-        <div className="ticket-actions">
-          <button 
-            className="btn btn-secondary"
-            onClick={() => setShowAll(true)}
-          >
-            ↓ Mostrar Todos ({filtered.length} chamados)
-          </button>
+      <div className="pagination">
+        <span>{filtered.length} chamado(s) na listagem atual</span>
+        <div className="page-btns">
+          <button className="page-btn" onClick={onPrev} disabled={page <= 1}>‹</button>
+          <button className="page-btn active">{page}</button>
+          <button className="page-btn" onClick={onNext} disabled={tickets.length < 25}>›</button>
         </div>
-      )}
-
-      {showAll && (
-        <div className="ticket-actions">
-          <button 
-            className="btn btn-secondary"
-            onClick={() => setShowAll(false)}
-          >
-            ↑ Mostrar Apenas Recentes
-          </button>
-          
-          {hasMore && (
-            <div className="pagination">
-              <span>Página {page}</span>
-              <div className="page-btns">
-                <button className="page-btn" onClick={onPrev} disabled={page <= 1}>‹</button>
-                <button className="page-btn active">{page}</button>
-                <button className="page-btn" onClick={onNext} disabled={tickets.length < 25}>›</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

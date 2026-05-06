@@ -1,3 +1,5 @@
+import { loadTicketClassificationConfig } from '../config/ticket-classification.js';
+import { env } from '../config/env.js';
 import * as zammadService from './zammad.service.js';
 
 export async function getTickets({ user, page, perPage }) {
@@ -36,49 +38,57 @@ export async function getTicketDetails(ticketId, user) {
   return { ticket, articles };
 }
 
-export async function createNewTicket({ title, body, category, subcategory, priority, user }) {
+export async function createNewTicket({
+  title,
+  body,
+  category,
+  subcategory,
+  priority,
+  group,
+  classificationField,
+  classificationValue,
+  ticketAttributes,
+  user,
+}) {
+  const customAttributes = {};
+  if (group) customAttributes.group = group;
+  if (category) customAttributes.category = category;
+  if (subcategory) customAttributes.subcategory = subcategory;
+  if (
+    classificationField &&
+    classificationValue != null &&
+    String(classificationValue).trim() !== ''
+  ) {
+    customAttributes[classificationField] = String(classificationValue).trim();
+  }
+
+  const configSteps = loadTicketClassificationConfig().steps;
+  const attrsData = await zammadService.fetchTicketObjectAttributes();
+  const allowed = zammadService.classificationAllowlistFromAttributes(
+    attrsData,
+    configSteps,
+  );
+  if (ticketAttributes && typeof ticketAttributes === 'object' && allowed.size > 0) {
+    for (const [k, v] of Object.entries(ticketAttributes)) {
+      if (!allowed.has(k)) continue;
+      if (v == null || String(v).trim() === '') continue;
+      customAttributes[k] = String(v).trim();
+    }
+  }
+
   return zammadService.createTicket({
     title,
     body,
     customerId: user.zammadId,
-    category,
-    subcategory,
     priorityId: Number(priority ?? 2),
+    customAttributes,
   });
 }
 
 export async function getFormFields() {
-  // Fetch from Zammad API
-  const [groups, attributes, priorities] = await Promise.all([
-    zammadService.getGroups(),
-    zammadService.getTicketAttributes(),
-    zammadService.getPriorities(),
-  ]);
-
-  // Extract category field from attributes
-  const categoryField = attributes.find(attr => attr.name === 'category');
-  const subcategoryField = attributes.find(attr => attr.name === 'subcategory');
-
-  const categories = {};
-  
-  // Build categories structure from groups and attributes
-  if (Array.isArray(groups)) {
-    groups.forEach(group => {
-      categories[group.name] = [];
-    });
-  }
-
-  // Add subcategories from the field options if available
-  if (categoryField?.data?.options) {
-    Object.keys(categoryField.data.options).forEach(key => {
-      if (!categories[key]) {
-        categories[key] = [];
-      }
-    });
-  }
-
-  return {
-    categories,
-    priorities: priorities.filter(p => p.name !== 'Unanswered').map(p => ({ id: p.id, name: p.name })),
-  };
+  const { steps } = loadTicketClassificationConfig();
+  return zammadService.getTicketFields({
+    treeFieldName: env.ZAMMAD_TICKET_TREE_CLASSIFICATION_FIELD,
+    classificationSteps: steps,
+  });
 }
