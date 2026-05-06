@@ -1,32 +1,28 @@
-import { useState, useEffect } from 'react';
-import { createTicket, fetchFormFields } from '../services/ticket.service.js';
+import { useState } from 'react';
+import { createTicket } from '../services/ticket.service.js';
+
+const CATEGORIES = {
+  'Residencial':           ['Instalação', 'Manutenção', 'Vazamento', 'Medidor', 'Outros'],
+  'Industrial':            ['Instalação', 'Manutenção', 'Emergência', 'Contrato', 'Outros'],
+  'Comercial':             ['Instalação', 'Manutenção', 'Faturamento', 'Outros'],
+  'GNV — Gás Veicular':   ['Instalação', 'Conversão', 'Manutenção', 'Outros'],
+  'Financeiro/Faturamento':['Contestação de fatura', 'Parcelamento', 'Segunda via', 'Outros'],
+  'Emergência':            ['Vazamento de gás', 'Cheiro de gás', 'Incêndio', 'Outros'],
+  'Outros':                ['Informação geral', 'Reclamação', 'Sugestão'],
+};
 
 export default function CreateTicketModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
-    title: '', body: '', group: '', subcategory: '', priority: '2',
-  });
-  const [formFields, setFormFields] = useState({
-    groups: [],
-    subcategories: [],
+    title: '', body: '', category: '', subcategory: '', priority: '2',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchFormFields()
-      .then(setFormFields)
-      .catch(err => {
-        console.error('Erro ao carregar campos:', err);
-        setError('Erro ao carregar opções de categorias');
-      })
-      .finally(() => setLoading(false));
-  }, []);
 
   function set(key, val) {
     setForm((f) => ({
       ...f,
       [key]: val,
+      ...(key === 'category' ? { subcategory: '' } : {}),
     }));
   }
 
@@ -34,13 +30,13 @@ export default function CreateTicketModal({ onClose, onCreated }) {
     e.preventDefault();
     if (form.title.length < 3) return setError('Título deve ter ao menos 3 caracteres');
     if (form.body.length < 10) return setError('Descrição deve ter ao menos 10 caracteres');
-    if (!form.group) return setError('Selecione um grupo');
+    if (!form.category) return setError('Selecione uma categoria');
     setError('');
     setSubmitting(true);
 
     try {
       await createTicket(form.title, form.body, {
-        group: form.group,
+        category: form.category,
         subcategory: form.subcategory,
         priority: form.priority,
       });
@@ -52,20 +48,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
     }
   }
 
-  const categories = form.group ? (formFields.categories[form.group] ?? {}) : {};
-  const subcategories = form.category ? (categories[form.category] ?? []) : [];
-
-  if (loading) {
-    return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-body">
-            <p>Carregando opções...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const subcategories = CATEGORIES[form.category] ?? [];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -81,33 +64,17 @@ export default function CreateTicketModal({ onClose, onCreated }) {
 
           <div className="form-row">
             <div className="field">
-              <label>Grupo</label>
-              <select value={form.group} onChange={(e) => set('group', e.target.value)} disabled={submitting}>
-                <option value="">Selecione um grupo...</option>
-                {formFields.groups && formFields.groups.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="field">
               <label>Categoria</label>
-              <select value={form.category} onChange={(e) => set('category', e.target.value)} disabled={!form.group || submitting}>
-                <option value="">Selecione uma categoria...</option>
-                {Object.keys(categories).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+              <select value={form.category} onChange={(e) => set('category', e.target.value)} disabled={submitting}>
+                <option value="">Selecione...</option>
+                {Object.keys(CATEGORIES).map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
               <label>Subcategoria</label>
               <select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} disabled={!form.category || submitting}>
-                <option value="">Selecione uma subcategoria...</option>
-                {Array.isArray(subcategories) && subcategories.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                <option value="">Selecione...</option>
+                {subcategories.map((s) => <option key={s}>{s}</option>)}
               </select>
             </div>
           </div>
