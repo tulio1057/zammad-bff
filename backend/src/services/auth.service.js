@@ -11,12 +11,15 @@ export async function loginUser(email, password) {
   const zammadUser = await authenticateUser(email, password);
 
   const isAdmin = zammadUser.role_ids?.includes(1) || zammadUser.roles?.includes('Admin');
+  const isAgent = zammadUser.role_ids?.includes(2) || zammadUser.roles?.includes('Agent');
+
+  const role = isAdmin ? 'admin' : isAgent ? 'technician' : 'user';
 
   const payload = {
     sub: zammadUser.id,
     email: zammadUser.email,
     name: `${zammadUser.firstname} ${zammadUser.lastname}`,
-    role: isAdmin ? 'admin' : 'user',
+    role,
     zammadId: zammadUser.id,
   };
 
@@ -28,13 +31,16 @@ export async function loginUser(email, password) {
   const refreshToken = uuidv4();
   refreshTokenStore.set(refreshToken, {
     userId: zammadUser.id,
-    email: zammadUser.email,
+    email: zammadUser.email,   
+    name: `${zammadUser.firstname} ${zammadUser.lastname}`, 
+    role, 
+    zammadId: zammadUser.id, 
     expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
 
   logger.info({ userId: zammadUser.id, role: payload.role }, 'User logged in');
 
-  return { accessToken, refreshToken, isAdmin, user: payload };
+  return { accessToken, refreshToken, isAdmin: role === 'admin', user: payload };
 }
 
 export async function refreshAccessToken(refreshToken) {
@@ -45,9 +51,13 @@ export async function refreshAccessToken(refreshToken) {
     throw new Error('Invalid or expired refresh token');
   }
 
+
   const payload = {
     sub: stored.userId,
     email: stored.email,
+    name: stored.name,
+    role: stored.role,
+    zammadId: stored.zammadId, 
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {

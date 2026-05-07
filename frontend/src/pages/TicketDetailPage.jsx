@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchTicket } from '../services/ticket.service.js';
+import ChatPanel from '../components/ChatPanel.jsx';
 
 const STATUS_LABELS = { 1: 'Novo', 2: 'Aberto', 3: 'Pendente', 4: 'Fechado', 6: 'Resolvido' };
 
@@ -49,20 +50,29 @@ export default function TicketDetailPage() {
           <span>Criado em {new Date(ticket.created_at).toLocaleString('pt-BR')}</span>
         </div>
 
-        <div className="articles">
-          <h3>Mensagens</h3>
-          {articles?.map((a) => (
-            <div key={a.id} className={`article ${a.internal ? 'internal' : ''}`}>
-              <div className="article-header">
-                <strong>{a.from || 'Sistema'}</strong>
-                <span>{new Date(a.created_at).toLocaleString('pt-BR')}</span>
-              </div>
-              <div
-                className="article-body"
-                dangerouslySetInnerHTML={{ __html: a.body }}
-              />
+        <div className="tech-detail-grid">
+          <div className="tech-detail-left">
+            <div className="articles">
+              <h3>Histórico do Chamado</h3>
+              {articles?.map((a) => (
+                <div key={a.id} className={`article ${a.internal ? 'internal' : ''}`}>
+                  <div className="article-header">
+                    <strong>{a.from || 'Sistema'}</strong>
+                    <span>{new Date(a.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div
+                    className="article-body"
+                    dangerouslySetInnerHTML={{ __html: a.body }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          {data.canChat && (
+            <div className="tech-detail-right">
+              <ChatPanel ticketId={ticket.id} canChat={data.canChat} createdBy={data.createdBy} />
+            </div>
+          )}
         </div>
       </main>
     </div>
