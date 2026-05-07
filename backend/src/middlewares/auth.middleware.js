@@ -23,3 +23,10 @@ export function requireAdmin(req, res, next) {
   }
   next();
 }
+
+export function requireTechnician(req, res, next) {
+  if (req.user?.role !== 'technician' && req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Technician access required' });
+  }
+  next();
+}
