@@ -29,6 +29,8 @@ export async function loginUser(email, password) {
   refreshTokenStore.set(refreshToken, {
     userId: zammadUser.id,
     email: zammadUser.email,
+    name: payload.name,
+    role: payload.role,
     expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -48,6 +50,9 @@ export async function refreshAccessToken(refreshToken) {
   const payload = {
     sub: stored.userId,
     email: stored.email,
+    name: stored.name,
+    role: stored.role,
+    zammadId: stored.userId, // Same as sub
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {

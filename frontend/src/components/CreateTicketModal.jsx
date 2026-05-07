@@ -166,9 +166,9 @@ export default function CreateTicketModal({ onClose, onCreated }) {
           ? { ticketAttributes: form.ticketAttributes }
           : {}),
         ...(mode === 'tree' &&
-        classField &&
-        classificationValue != null &&
-        classificationValue !== ''
+          classField &&
+          classificationValue != null &&
+          classificationValue !== ''
           ? { classificationField: classField, classificationValue }
           : {}),
       });
@@ -186,9 +186,11 @@ export default function CreateTicketModal({ onClose, onCreated }) {
       : [];
 
   const visibleFieldSteps =
-    mode === 'fields' ? visibleClassificationSteps(classSteps, form.ticketAttributes) : [];
+    mode === 'fields' ? visibleClassificationSteps(classSteps, { ...form.ticketAttributes, group: form.group }) : [];
 
   const gridItems = [];
+  gridItems.push({ kind: 'group' });
+  
   if (mode === 'fields') {
     for (const s of visibleFieldSteps) {
       gridItems.push({ kind: 'field', step: s });
@@ -198,7 +200,6 @@ export default function CreateTicketModal({ onClose, onCreated }) {
       gridItems.push({ kind: 'tree', ...L });
     }
   }
-  gridItems.push({ kind: 'group' });
 
   function renderGridCell(item) {
     if (!item) return null;
@@ -250,7 +251,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
           <label>Grupo</label>
           <select
             value={form.group}
-            onChange={(e) => setForm((f) => ({ ...f, group: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, group: e.target.value, ticketAttributes: {} }))}
             disabled={submitting}
           >
             <option value="">Selecione um grupo...</option>

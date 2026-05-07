@@ -14,8 +14,8 @@ const STATUS_FILTERS = [
   { value: 'resolved', label: 'Resolvidos' },
 ];
 
-// Categorias disponíveis
-const CATEGORIES = [
+// Categorias base sempre disponíveis no filtro
+const BASE_CATEGORIES = [
   'Manutenção Predial',
   'Gestão de Celulares Corporativos',
   'Chamados TI',
@@ -50,10 +50,16 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
 
   const sorted = sortTickets(tickets);
   
+  // Extrair categorias e grupos únicos para o filtro, mesclando com as categorias base
+  const dynamicCategories = Array.from(new Set([
+    ...BASE_CATEGORIES,
+    ...tickets.map(t => t.category || t.group).filter(Boolean)
+  ])).sort();
+
   // Filtros
   let filtered = sorted;
   if (selectedCategory) {
-    filtered = sorted.filter(t => t.category === selectedCategory);
+    filtered = sorted.filter(t => t.category === selectedCategory || t.group === selectedCategory);
   }
   if (statusFilter === 'open') {
     filtered = filtered.filter((t) => [1, 2, 3].includes(t.state_id));
@@ -101,7 +107,7 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
             onChange={(e) => setSelectedCategory(e.target.value || null)}
           >
             <option value="">Todas as categorias</option>
-            {CATEGORIES.map((cat) => (
+            {dynamicCategories.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
