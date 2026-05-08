@@ -25,6 +25,11 @@ const chatMessageSchema = z.object({
   content: z.string().min(1).max(2000).trim(),
 });
 
+const createNoticeSchema = z.object({
+  title: z.string().max(200).trim().optional(),
+  message: z.string().min(1).max(5000).trim(),
+});
+
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -44,3 +49,4 @@ export const validateCreateTicket = validate(createTicketSchema);
 export const validateChangeStatus = validate(changeStatusSchema);
 export const validateAddUpdate = validate(addUpdateSchema);
 export const validateChatMessage = validate(chatMessageSchema);
+export const validateCreateNotice = validate(createNoticeSchema);

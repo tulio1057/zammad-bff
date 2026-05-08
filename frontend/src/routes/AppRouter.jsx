@@ -6,6 +6,7 @@ import DashboardPage from '../pages/DashboardPage.jsx';
 import TicketDetailPage from '../pages/TicketDetailPage.jsx';
 import TechDashboardPage from '../pages/TechDashboardPage.jsx';
 import TechTicketDetailPage from '../pages/TechTicketDetailPage.jsx';
+import NoticesPage from '../pages/NoticesPage.jsx';
 
 export default function AppRouter() {
   return (
@@ -28,6 +29,9 @@ export default function AppRouter() {
           } />
           <Route path="/tech/tickets/:id" element={
             <ProtectedRoute roles={['technician','admin']}><TechTicketDetailPage /></ProtectedRoute>
+          } />
+          <Route path="/tech/notices" element={
+            <ProtectedRoute roles={['technician','admin']}><NoticesPage /></ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

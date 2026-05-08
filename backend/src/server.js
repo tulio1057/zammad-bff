@@ -3,12 +3,12 @@ import http from 'http';
 import app from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { initSocket } from './socket/chat.gateway.js';
+import { initMaintenance } from './services/maintenance.service.js';
 
 const httpServer = http.createServer(app);
 
-// Inicia Socket.IO no mesmo servidor HTTP
-initSocket(httpServer, env.FRONTEND_URL);
+// Inicia rotinas de manutenção
+initMaintenance();
 
 const server = httpServer.listen(env.PORT, () => {
   logger.info(`🚀 BFF Server running on port ${env.PORT} [${env.NODE_ENV}]`);

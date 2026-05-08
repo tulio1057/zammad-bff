@@ -50,7 +50,7 @@ export default function TicketDetailPage() {
         </div>
 
         <div className="articles">
-          <h3>Mensagens</h3>
+          <h3>Histórico do Chamado</h3>
           {articles?.map((a) => (
             <div key={a.id} className={`article ${a.internal ? 'internal' : ''}`}>
               <div className="article-header">

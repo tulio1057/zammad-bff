@@ -29,7 +29,7 @@ export default function LoginPage() {
       const destination = data.user.role === 'technician' ? '/tech' : '/dashboard';
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
+      setError(err.response?.data?.error || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setSubmitting(false);
     }
@@ -39,16 +39,16 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <span className="logo-icon">◈</span>
-          <h1>Chamados</h1>
-          <p>Sistema de suporte</p>
+          <div className="logo-icon">SC</div>
+          <h1>SERGAS</h1>
+          <p>Sistema de Chamados Internos</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
           {error && <div className="alert alert-error">{error}</div>}
 
           <div className="field">
-            <label htmlFor="email">E-mail</label>
+            <label htmlFor="email">E-mail Corporativo</label>
             <input
               id="email"
               type="email"
@@ -56,13 +56,13 @@ export default function LoginPage() {
               required
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="seu@email.com"
+              placeholder="seu.nome@sergas.com.br"
               disabled={submitting}
             />
           </div>
 
           <div className="field">
-            <label htmlFor="password">Senha</label>
+            <label htmlFor="password">Senha de Acesso</label>
             <input
               id="password"
               type="password"
@@ -75,10 +75,14 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Entrando...' : 'Entrar'}
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
+            {submitting ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
         </form>
+
+        <div style={{ marginTop: 32, textAlign: 'center', fontSize: 11, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
+          Tecnologia da Informação &copy; 2026
+        </div>
       </div>
     </div>
   );

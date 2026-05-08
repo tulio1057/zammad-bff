@@ -1,8 +1,16 @@
 import * as zammadService from './zammad.service.js';
+import * as ticketRepo from '../repositories/ticket.repository.js';
 
 export async function getTickets({ user, page, perPage }) {
   const userId = user.role !== 'admin' ? user.zammadId : undefined;
-  return zammadService.listTickets({ page, perPage, userId });
+  const tickets = await zammadService.listTickets({ page, perPage, userId });
+
+  // Upsert tickets to ensure they exist locally
+  for (const t of tickets) {
+    ticketRepo.upsertFromZammad(t, String(t.customer_id));
+  }
+
+  return tickets;
 }
 
 export async function getTicketDetails(ticketId, user) {
@@ -18,11 +26,19 @@ export async function getTicketDetails(ticketId, user) {
     throw err;
   }
 
-  return { ticket, articles };
+  // Upsert to local database
+  const local = ticketRepo.upsertFromZammad(ticket, String(ticket.customer_id));
+
+  return {
+    ticket,
+    articles,
+    createdBy: local.created_by,
+    assignedTo: local.assigned_to,
+  };
 }
 
 export async function createNewTicket({ title, body, category, subcategory, priority, user }) {
-  return zammadService.createTicket({
+  const ticket = await zammadService.createTicket({
     title,
     body,
     customerId: user.zammadId,
@@ -30,4 +46,9 @@ export async function createNewTicket({ title, body, category, subcategory, prio
     subcategory,
     priorityId: Number(priority ?? 2),
   });
+
+  // Upsert to local database
+  ticketRepo.upsertFromZammad(ticket, String(user.zammadId));
+
+  return ticket;
 }

@@ -11,7 +11,7 @@ export function upsertFromZammad(zammadTicket, createdBy) {
   db.prepare(`
     INSERT INTO local_tickets (id, zammad_id, created_by, status)
     VALUES (?, ?, ?, 'aberto')
-  `).run(id, zammadTicket.id, createdBy);
+  `).run(id, zammadTicket.id, String(createdBy));
 
   return db.prepare('SELECT * FROM local_tickets WHERE id = ?').get(id);
 }
@@ -22,6 +22,15 @@ export function findById(id) {
 
 export function findByZammadId(zammadId) {
   return db.prepare('SELECT * FROM local_tickets WHERE zammad_id = ?').get(zammadId);
+}
+
+export function findTicket(ticketId) {
+  // Check if ticketId is a UUID (local id) or numeric (Zammad id)
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) {
+    return findById(ticketId);
+  } else {
+    return findByZammadId(ticketId);
+  }
 }
 
 export function findAll({ status, assignedTo } = {}) {
