@@ -1,25 +1,25 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   fetchTechTicket,
   assignTicket,
   changeStatus,
   addUpdate,
-} from "../services/technician.service.js";
-import { useAuth } from "../context/AuthContext.jsx";
+} from '../services/technician.service.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const STATUS_LABELS = {
-  aberto: "Aberto",
-  em_andamento: "Em andamento",
-  aguardando: "Aguardando",
-  finalizado: "Finalizado",
+  aberto:       'Aberto',
+  em_andamento: 'Em andamento',
+  aguardando:   'Aguardando',
+  finalizado:   'Finalizado',
 };
 
 const TRANSITIONS = {
-  aberto: ["em_andamento"],
-  em_andamento: ["aguardando", "finalizado"],
-  aguardando: ["em_andamento"],
-  finalizado: [],
+  aberto:       ['em_andamento'],
+  em_andamento: ['aguardando', 'finalizado'],
+  aguardando:   ['em_andamento'],
+  finalizado:   [],
 };
 
 export default function TechTicketDetailPage() {
@@ -27,35 +27,41 @@ export default function TechTicketDetailPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [updateMsg, setUpdateMsg] = useState("");
+  const [data, setData]           = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [updateMsg, setUpdateMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("updates");
 
   const load = () => {
     setLoading(true);
     fetchTechTicket(id)
       .then(setData)
-      .catch((err) => setError(err.response?.data?.error || "Erro ao carregar"))
+      .catch((err) => setError(err.response?.data?.error || 'Erro ao carregar'))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [id]);
 
   const ticket = data?.ticket;
-  const isAssigned = ticket?.assignedTo === String(user?.id);
-  const canAct = isAssigned;
+
+  // isAssigned: compara ownerId do Zammad com o zammadId do usuário logado
+  const isAssigned  = ticket?.ownerId != null && String(ticket.ownerId) === String(user?.zammadId ?? user?.id);
+  const canAct      = isAssigned;
   const transitions = TRANSITIONS[ticket?.status] ?? [];
+
+  // Separa artigos internos (notas técnicas) dos artigos externos (histórico do cliente)
+  const internalNotes = data?.articles?.filter((a) => a.internal)  ?? [];
+  const publicArticles = data?.articles?.filter((a) => !a.internal) ?? [];
 
   async function handleAssign() {
     setSubmitting(true);
+    setError('');
     try {
       await assignTicket(id);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || "Erro ao assumir");
+      setError(err.response?.data?.error || 'Erro ao assumir');
     } finally {
       setSubmitting(false);
     }
@@ -63,11 +69,12 @@ export default function TechTicketDetailPage() {
 
   async function handleStatus(newStatus) {
     setSubmitting(true);
+    setError('');
     try {
       await changeStatus(id, newStatus);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || "Erro ao alterar status");
+      setError(err.response?.data?.error || 'Erro ao alterar status');
     } finally {
       setSubmitting(false);
     }
@@ -77,12 +84,13 @@ export default function TechTicketDetailPage() {
     e.preventDefault();
     if (!updateMsg.trim()) return;
     setSubmitting(true);
+    setError('');
     try {
       await addUpdate(id, updateMsg);
-      setUpdateMsg("");
+      setUpdateMsg('');
       load();
     } catch (err) {
-      setError(err.response?.data?.error || "Erro ao adicionar atualização");
+      setError(err.response?.data?.error || 'Erro ao adicionar atualização');
     } finally {
       setSubmitting(false);
     }
@@ -92,11 +100,8 @@ export default function TechTicketDetailPage() {
 
   return (
     <div className="layout">
-      <main className="main" style={{ marginLeft: 0, maxWidth: "100%" }}>
-        <button
-          className="btn btn-ghost back-btn"
-          onClick={() => navigate("/tech")}
-        >
+      <main className="main" style={{ marginLeft: 0, maxWidth: '100%' }}>
+        <button className="btn btn-ghost back-btn" onClick={() => navigate('/tech')}>
           ← Voltar
         </button>
 
@@ -104,7 +109,6 @@ export default function TechTicketDetailPage() {
 
         {ticket && (
           <div className="tech-detail-grid">
-            {/* Coluna principal — info + ações */}
             <div className="tech-detail-left">
               <div className="ticket-header">
                 <h2>{ticket.title}</h2>
@@ -115,100 +119,57 @@ export default function TechTicketDetailPage() {
 
               <div className="ticket-meta">
                 <span>Chamado #{ticket.number ?? ticket.zammadId}</span>
-                <span>Técnico: {ticket.assignedName ?? "Não atribuído"}</span>
+                <span>Técnico: {ticket.assignedName ?? 'Não atribuído'}</span>
               </div>
 
               {/* Ações de técnico */}
               <div className="tech-actions">
-                {ticket.status === "aberto" && !isAssigned && (
+                {ticket.status === 'aberto' && !isAssigned && (
                   <button
                     className="btn btn-primary"
-                    style={{ width: "auto" }}
+                    style={{ width: 'auto' }}
                     onClick={handleAssign}
                     disabled={submitting}
                   >
                     ✋ Assumir Chamado
                   </button>
                 )}
-                {canAct &&
-                  transitions.map((s) => (
-                    <button
-                      key={s}
-                      className="btn btn-ghost"
-                      style={{
-                        backgroundColor:
-                          s === "aguardando"
-                            ? "#facc15"
-                            : s === "finalizado"
-                              ? "#ef4444"
-                              : undefined,
-                        color:
-                          s === "aguardando"
-                            ? "#000"
-                            : s === "finalizado"
-                              ? "#fff"
-                              : undefined,
-                        border:
-                          s === "aguardando"
-                            ? "1px solid #facc15"
-                            : s === "finalizado"
-                              ? "1px solid #ef4444"
-                              : undefined,
-                      }}
-                      onClick={() => handleStatus(s)}
-                      disabled={submitting}
-                    >
-                      → {STATUS_LABELS[s]}
-                    </button>
-                  ))}
+                {canAct && transitions.map((s) => (
+                  <button
+                    key={s}
+                    className="btn btn-ghost"
+                    style={{
+                      backgroundColor: s === 'aguardando' ? '#facc15' : s === 'finalizado' ? '#ef4444' : undefined,
+                      color:           s === 'aguardando' ? '#000'    : s === 'finalizado' ? '#fff'    : undefined,
+                      border:          s === 'aguardando' ? '1px solid #facc15' : s === 'finalizado' ? '1px solid #ef4444' : undefined,
+                    }}
+                    onClick={() => handleStatus(s)}
+                    disabled={submitting}
+                  >
+                    → {STATUS_LABELS[s]}
+                  </button>
+                ))}
               </div>
 
-              {/* Tabs */}
-              <div className="status-tabs" style={{ marginTop: 24 }}>
-                <button
-                  className={`status-tab ${activeTab === "updates" ? "active" : ""}`}
-                  onClick={() => setActiveTab("updates")}
-                >
-                  Atualizações
-                </button>
-                <button
-                  className={`status-tab ${activeTab === "articles" ? "active" : ""}`}
-                  onClick={() => setActiveTab("articles")}
-                >
-                  Histórico Zammad
-                </button>
-              </div>
+              {/* ─── Notas Técnicas Internas ─────────────────────────── */}
+              <div style={{ marginTop: 28 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--gray-800)' }}>
+                  📋 Atualizações Técnicas
+                </h3>
 
-              {activeTab === "updates" && (
                 <div className="updates-list">
-                  {data.updates.length === 0 && (
-                    <p
-                      style={{
-                        color: "var(--gray-600)",
-                        fontSize: 14,
-                        marginTop: 12,
-                      }}
-                    >
-                      Sem atualizações ainda.
+                  {internalNotes.length === 0 && (
+                    <p style={{ color: 'var(--gray-600)', fontSize: 14 }}>
+                      Sem atualizações técnicas ainda.
                     </p>
                   )}
-                  {data.updates.map((u) => (
-                    <div key={u.id} className="update-item">
+                  {internalNotes.map((a) => (
+                    <div key={a.id} className="update-item">
                       <div className="update-header">
-                        <strong>{u.author_name}</strong>
-                        <span>
-                          {new Date(u.created_at * 1000).toLocaleString(
-                            "pt-BR",
-                          )}
-                        </span>
+                        <strong>{a.from || 'Sistema'}</strong>
+                        <span>{new Date(a.created_at).toLocaleString('pt-BR')}</span>
                       </div>
-                      {u.status_to && (
-                        <span className="update-status-change">
-                          {STATUS_LABELS[u.status_from]} →{" "}
-                          {STATUS_LABELS[u.status_to]}
-                        </span>
-                      )}
-                      <p>{u.message}</p>
+                      <p style={{ whiteSpace: 'pre-wrap' }}>{a.body}</p>
                     </div>
                   ))}
 
@@ -228,7 +189,7 @@ export default function TechTicketDetailPage() {
                       <button
                         type="submit"
                         className="btn btn-primary"
-                        style={{ width: "auto" }}
+                        style={{ width: 'auto' }}
                         disabled={submitting || !updateMsg.trim()}
                       >
                         Registrar Atualização
@@ -236,27 +197,28 @@ export default function TechTicketDetailPage() {
                     </form>
                   )}
                 </div>
-              )}
+              </div>
 
-              {activeTab === "articles" && (
-                <div className="articles" style={{ marginTop: 16 }}>
-                  {data.articles?.map((a) => (
-                    <div
-                      key={a.id}
-                      className={`article ${a.internal ? "internal" : ""}`}
-                    >
-                      <div className="article-header">
-                        <strong>{a.from || "Sistema"}</strong>
-                        <span>
-                          {new Date(a.created_at).toLocaleString("pt-BR")}
-                        </span>
+              {/* ─── Histórico de Mensagens (artigos públicos) ──────── */}
+              {publicArticles.length > 0 && (
+                <div style={{ marginTop: 28 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--gray-800)' }}>
+                    💬 Histórico de Mensagens
+                  </h3>
+                  <div className="articles" style={{ marginTop: 0 }}>
+                    {publicArticles.map((a) => (
+                      <div key={a.id} className="article">
+                        <div className="article-header">
+                          <strong>{a.from || 'Sistema'}</strong>
+                          <span>{new Date(a.created_at).toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div
+                          className="article-body"
+                          dangerouslySetInnerHTML={{ __html: a.body }}
+                        />
                       </div>
-                      <div
-                        className="article-body"
-                        dangerouslySetInnerHTML={{ __html: a.body }}
-                      />
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

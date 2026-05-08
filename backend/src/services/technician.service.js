@@ -1,130 +1,187 @@
-import * as zammadService from './zammad.service.js';
-import * as ticketRepo from '../repositories/ticket.repository.js';
-import * as updateRepo from '../repositories/update.repository.js';
+import * as zammad from './zammad.service.js';
 import { logger } from '../config/logger.js';
 
+// Transições válidas (validação no BFF, estado real gravado no Zammad)
+const VALID_TRANSITIONS = {
+  aberto:       ['em_andamento'],
+  em_andamento: ['aguardando', 'finalizado'],
+  aguardando:   ['em_andamento'],
+  finalizado:   [],
+};
+
 /**
- * Sincroniza tickets do Zammad com o banco local e retorna lista enriquecida.
- * Filtros: status, assignedTo
+ * Lista todos os tickets do Zammad, já normalizados para o formato do frontend.
+ * Filtros de status e assignedTo são aplicados no BFF após a busca.
  */
 export async function listTickets({ user, status, assignedTo } = {}) {
-  // Técnicos veem todos; usuários comuns veem apenas os seus
-  const zammadTickets = await zammadService.listTickets({
+  const rawData = await zammad.listTickets({
     page: 1,
     perPage: 100,
     userId: user.role === 'user' ? user.zammadId : undefined,
   });
 
-  const rawList = Array.isArray(zammadTickets) ? zammadTickets : (zammadTickets.tickets ?? []);
+  const rawList = Array.isArray(rawData) ? rawData : (rawData.tickets ?? []);
 
-  // Garante que todos existem localmente
-  for (const zt of rawList) {
-    ticketRepo.upsertFromZammad(zt, String(zt.customer_id));
-  }
+  let list = rawList.map(normalizeTicket);
 
-  // Busca com filtros locais
-  const localList = ticketRepo.findAll({ status, assignedTo });
+  if (status)     list = list.filter((t) => t.status === status);
+  if (assignedTo) list = list.filter((t) => String(t.ownerId) === String(assignedTo));
 
-  // Enriquece com dados do Zammad
-  return localList.map((lt) => {
-    const zt = rawList.find((z) => z.id === lt.zammad_id) ?? {};
-    return mergeTicket(lt, zt);
-  });
+  return list;
 }
 
-export async function getTicketDetail(localId, user) {
-  const local = ticketRepo.findById(localId);
-  if (!local) throw Object.assign(new Error('Ticket not found'), { status: 404 });
+/**
+ * Retorna detalhes de um ticket: dados + articles do Zammad.
+ * O parâmetro id é o ID numérico do Zammad.
+ */
+export async function getTicketDetail(zammadId, user) {
+  const [zammadTicket, articles] = await Promise.all([
+    zammad.getTicket(zammadId),
+    zammad.getTicketArticles(zammadId),
+  ]);
 
-  // Usuário comum só vê o próprio chamado
-  if (user.role === 'user' && local.created_by !== String(user.zammadId)) {
+  if (user.role === 'user' && String(zammadTicket.customer_id) !== String(user.zammadId)) {
     throw Object.assign(new Error('Forbidden'), { status: 403 });
   }
 
-  const [zammadTicket, articles] = await Promise.all([
-    zammadService.getTicket(local.zammad_id),
-    zammadService.getTicketArticles(local.zammad_id),
-  ]);
-
-  const updates = updateRepo.findByTicket(localId);
-
-  const ticket = mergeTicket(local, zammadTicket);
   return {
-    ticket,
+    ticket: normalizeTicket(zammadTicket),
     articles,
-    updates,
-    createdBy: local.created_by,
-    assignedTo: local.assigned_to,
   };
 }
 
-export function assignTicket(localId, technician) {
-  const ticket = ticketRepo.findById(localId);
-  if (!ticket) throw Object.assign(new Error('Ticket not found'), { status: 404 });
-  if (ticket.status !== 'aberto') throw Object.assign(new Error('Ticket is not open'), { status: 409 });
+/**
+ * Assume um ticket: define owner_id no Zammad e muda status para "em_andamento".
+ * Garante que o ticket estava sem dono antes de atribuir (evita race condition).
+ */
+export async function assignTicket(zammadId, technician) {
+  const zammadTicket = await zammad.getTicket(zammadId);
+  const ticket = normalizeTicket(zammadTicket);
 
-  const success = ticketRepo.tryAssign(localId, String(technician.sub), technician.name);
-  if (!success) throw Object.assign(new Error('Ticket already taken'), { status: 409 });
+  if (ticket.status !== 'aberto') {
+    throw Object.assign(new Error('Ticket is not open'), { status: 409 });
+  }
+  if (ticket.ownerId && ticket.ownerId !== 1) {
+    throw Object.assign(new Error('Ticket already taken'), { status: 409 });
+  }
 
-  updateRepo.addUpdate({
-    ticketId: localId,
-    authorId: String(technician.sub),
-    authorName: technician.name,
-    authorRole: 'technician',
-    message: 'Chamado assumido.',
-    statusFrom: 'aberto',
-    statusTo: 'em_andamento',
-  });
+  // Atribui owner e muda status atomicamente (duas chamadas, Zammad não tem transação)
+  await zammad.assignTicketOwner(zammadId, technician.zammadId);
+  await zammad.updateTicketStatusByName(zammadId, 'em_andamento');
 
-  logger.info({ localId, technicianId: technician.sub }, 'Ticket assigned');
-  return ticketRepo.findById(localId);
+  // Registra nota interna
+  await zammad.addInternalNote(
+    zammadId,
+    `✋ Chamado assumido por ${technician.name}.`,
+  );
+
+  logger.info({ zammadId, technicianId: technician.sub }, 'Ticket assigned');
+  return normalizeTicket(await zammad.getTicket(zammadId));
 }
 
-export function changeStatus(localId, newStatus, technician) {
-  const transition = ticketRepo.transition(localId, String(technician.sub), newStatus);
+/**
+ * Altera o status de um ticket. Valida transição e grava no Zammad.
+ */
+export async function changeStatus(zammadId, newStatus, technician) {
+  const zammadTicket = await zammad.getTicket(zammadId);
+  const ticket = normalizeTicket(zammadTicket);
 
-  updateRepo.addUpdate({
-    ticketId: localId,
-    authorId: String(technician.sub),
-    authorName: technician.name,
-    authorRole: 'technician',
-    message: `Status alterado para "${newStatus}".`,
-    statusFrom: transition.from,
-    statusTo: transition.to,
-  });
-
-  return ticketRepo.findById(localId);
-}
-
-export function addUpdate(localId, { message, technician }) {
-  const ticket = ticketRepo.findById(localId);
-  if (!ticket) throw Object.assign(new Error('Ticket not found'), { status: 404 });
-  if (ticket.assigned_to !== String(technician.sub)) {
+  if (String(ticket.ownerId) !== String(technician.zammadId)) {
     throw Object.assign(new Error('Not assigned to you'), { status: 403 });
   }
 
-  return updateRepo.addUpdate({
-    ticketId: localId,
-    authorId: String(technician.sub),
-    authorName: technician.name,
-    authorRole: 'technician',
-    message,
-  });
+  const allowed = VALID_TRANSITIONS[ticket.status] ?? [];
+  if (!allowed.includes(newStatus)) {
+    throw Object.assign(
+      new Error(`Invalid transition: ${ticket.status} → ${newStatus}`),
+      { status: 422 },
+    );
+  }
+
+  await zammad.updateTicketStatusByName(zammadId, newStatus);
+
+  // Nota interna de mudança de status
+  const STATUS_LABELS = {
+    aberto: 'Aberto', em_andamento: 'Em andamento',
+    aguardando: 'Aguardando', finalizado: 'Finalizado',
+  };
+  await zammad.addInternalNote(
+    zammadId,
+    `🔄 Status alterado: ${STATUS_LABELS[ticket.status] ?? ticket.status} → ${STATUS_LABELS[newStatus] ?? newStatus} por ${technician.name}.`,
+  );
+
+  logger.info({ zammadId, from: ticket.status, to: newStatus }, 'Ticket status changed');
+  return normalizeTicket(await zammad.getTicket(zammadId));
 }
 
-// Mescla dados locais (status, assigned) com dados do Zammad (title, priority, etc.)
-function mergeTicket(local, zammad = {}) {
+/**
+ * Adiciona atualização técnica como nota interna no Zammad.
+ */
+export async function addUpdate(zammadId, { message, technician }) {
+  const zammadTicket = await zammad.getTicket(zammadId);
+  const ticket = normalizeTicket(zammadTicket);
+
+  if (String(ticket.ownerId) !== String(technician.zammadId)) {
+    throw Object.assign(new Error('Not assigned to you'), { status: 403 });
+  }
+
+  const note = await zammad.addInternalNote(
+    zammadId,
+    `📝 [${technician.name}] ${message}`,
+  );
+
+  return note;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Mapeia estado Zammad → status local legível no frontend.
+ */
+const ZAMMAD_STATE_TO_LOCAL = {
+  'new':              'aberto',
+  'open':             'aberto',
+  'em andamento':     'em_andamento',
+  'pending reminder': 'aguardando',
+  'pending action':   'aguardando',
+  'closed':           'finalizado',
+  'merged':           'finalizado',
+  'removed':          'finalizado',
+};
+
+function mapState(stateName = '') {
+  return ZAMMAD_STATE_TO_LOCAL[stateName.toLowerCase()] ?? 'aberto';
+}
+
+/**
+ * Normaliza um ticket bruto do Zammad para o formato esperado pelo frontend.
+ */
+function normalizeTicket(zt) {
   return {
-    id: local.id,
-    zammadId: local.zammad_id,
-    number: zammad.number,
-    title: zammad.title ?? '—',
-    priority_id: zammad.priority_id,
-    status: local.status,
-    assignedTo: local.assigned_to,
-    assignedName: local.assigned_name,
-    createdBy: local.created_by,
-    createdAt: local.created_at,
-    updatedAt: local.updated_at,
+    // IDs
+    id:           zt.id,
+    zammadId:     zt.id,
+    number:       zt.number,
+
+    // Conteúdo
+    title:        zt.title ?? '—',
+    priority_id:  zt.priority_id,
+    groupName:    zt.group?.name ?? null,
+
+    // Status mapeado
+    status:       mapState(zt.state?.name ?? zt.state_id?.toString()),
+
+    // Responsável
+    ownerId:      zt.owner_id ?? null,
+    assignedName: zt.owner
+      ? `${zt.owner.firstname ?? ''} ${zt.owner.lastname ?? ''}`.trim() || null
+      : null,
+
+    // Cliente
+    createdBy:    zt.customer_id,
+
+    // Timestamps (Zammad retorna ISO string)
+    createdAt:    zt.created_at ? Math.floor(new Date(zt.created_at).getTime() / 1000) : null,
+    updatedAt:    zt.updated_at ? Math.floor(new Date(zt.updated_at).getTime() / 1000) : null,
   };
 }

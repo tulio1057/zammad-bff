@@ -14,31 +14,39 @@ export async function listTickets(req, res, next) {
 
 export async function getTicket(req, res, next) {
   try {
-    const data = await techService.getTicketDetail(req.params.id, req.user);
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid ticket ID' });
+    const data = await techService.getTicketDetail(parseInt(id), req.user);
     res.json(data);
   } catch (err) { next(err); }
 }
 
 export async function assignTicket(req, res, next) {
   try {
-    const ticket = techService.assignTicket(req.params.id, req.user);
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid ticket ID' });
+    const ticket = await techService.assignTicket(parseInt(id), req.user);
     res.json(ticket);
   } catch (err) { next(err); }
 }
 
 export async function changeStatus(req, res, next) {
   try {
-    const ticket = techService.changeStatus(req.params.id, req.body.status, req.user);
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid ticket ID' });
+    const ticket = await techService.changeStatus(parseInt(id), req.body.status, req.user);
     res.json(ticket);
   } catch (err) { next(err); }
 }
 
 export async function addUpdate(req, res, next) {
   try {
-    const update = techService.addUpdate(req.params.id, {
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid ticket ID' });
+    const note = await techService.addUpdate(parseInt(id), {
       message: req.body.message,
       technician: req.user,
     });
-    res.status(201).json(update);
+    res.status(201).json(note);
   } catch (err) { next(err); }
 }
