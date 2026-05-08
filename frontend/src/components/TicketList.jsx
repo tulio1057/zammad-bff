@@ -1,32 +1,47 @@
-const STATUS_LABELS = { 1: 'Novo', 2: 'Aberto', 3: 'Pendente', 4: 'Fechado', 6: 'Resolvido' };
+const STATUS_LABELS = {
+  1: 'Novo',
+  2: 'Aberto',
+  3: 'Pendente',
+  4: 'Fechado',
+  6: 'Resolvido',
+};
 
-// Status aberto = menor número = aparece primeiro
-const STATUS_ORDER = { 1: 0, 2: 1, 3: 2, 6: 3, 4: 4 };
+const STATUS_ORDER = { 2: 1, 1: 2, 3: 3, 6: 4, 4: 5 };
 
-// priority_id do Zammad: 1=baixa, 2=normal, 3=alta
 const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta' };
-const PRIO_CLASS  = { 1: 'prio prio-low', 2: 'prio prio-med', 3: 'prio prio-high' };
-
-function sortTickets(tickets) {
-  return [...tickets].sort((a, b) => {
-    // 1. Status: abertos antes de fechados
-    const statusDiff = (STATUS_ORDER[a.state_id] ?? 99) - (STATUS_ORDER[b.state_id] ?? 99);
-    if (statusDiff !== 0) return statusDiff;
-
-    // 2. Data de criação: mais recente primeiro
-    const dateDiff = new Date(b.created_at) - new Date(a.created_at);
-    if (dateDiff !== 0) return dateDiff;
-
-    // 3. Prioridade: maior urgência primeiro
-    return (b.priority_id ?? 2) - (a.priority_id ?? 2);
-  });
-}
+const PRIO_CLASS  = { 1: 'prio prio-1', 2: 'prio prio-2', 3: 'prio prio-3' };
 
 export default function TicketList({ tickets, loading, onSelect, onPrev, onNext, page }) {
-  if (loading) return <div className="loading-center">Carregando chamados...</div>;
+  function sortTickets(list) {
+    return [...list].sort((a, b) => {
+      const orderA = STATUS_ORDER[a.state_id] ?? 99;
+      const orderB = STATUS_ORDER[b.state_id] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      if (dateB !== dateA) return dateB - dateA;
 
-  if (!tickets.length) {
-    return <div className="empty-state"><p>Nenhum chamado encontrado.</p></div>;
+      return (b.priority_id ?? 2) - (a.priority_id ?? 2);
+    });
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--gray-600)', fontSize: 14, fontWeight: 500 }}>
+        <div className="spinner" style={{ width: 30, height: 30, border: '3px solid var(--gray-200)', borderTopColor: 'var(--blue)', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }}></div>
+        Carregando seus chamados...
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!tickets || tickets.length === 0) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, padding: 60, textAlign: 'center', border: '1px dashed var(--gray-400)' }}>
+        <p style={{ color: 'var(--gray-600)', fontSize: 15 }}>Você ainda não possui chamados registrados.</p>
+      </div>
+    );
   }
 
   const sorted = sortTickets(tickets);
@@ -36,51 +51,62 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
       <table className="ticket-table">
         <thead>
           <tr>
-            <th>Nº</th>
+            <th style={{ width: 80 }}>Nº</th>
             <th>Assunto / Categoria</th>
-            <th>Prioridade</th>
-            <th>Status</th>
-            <th>Aberto em</th>
+            <th style={{ width: 140 }}>Prioridade</th>
+            <th style={{ width: 140 }}>Status</th>
+            <th style={{ width: 140 }}>Aberto em</th>
           </tr>
         </thead>
         <tbody>
-          {sorted.map((t) => {
-            const prioId = t.priority_id ?? 2;
-            return (
-              <tr key={t.id} onClick={() => onSelect(t.id)} className="ticket-row">
-                <td><span className="ticket-id">#{t.number}</span></td>
-                <td>
-                  <div className="ticket-subject">{t.title}</div>
-                  {(t.category || t.subcategory) && (
-                    <div className="ticket-category-sub">
-                      {[t.category, t.subcategory].filter(Boolean).join(' › ')}
-                    </div>
-                  )}
-                </td>
-                <td>
-                  <span className={PRIO_CLASS[prioId] ?? 'prio prio-med'}>
-                    <span className="prio-dot" />
-                    {PRIO_LABELS[prioId] ?? 'Média'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge badge-status-${t.state_id}`}>
-                    {STATUS_LABELS[t.state_id] ?? t.state_id}
-                  </span>
-                </td>
-                <td>{new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
-              </tr>
-            );
-          })}
+          {sorted.map(t => (
+            <tr key={t.id} className="ticket-row" onClick={() => onSelect(t.id)}>
+              <td><span className="ticket-id">#{t.number}</span></td>
+              <td>
+                <div className="ticket-subject">{t.title}</div>
+                <div className="ticket-category-sub">
+                  {t.category || 'Suporte'} {t.subcategory ? `› ${t.subcategory}` : ''}
+                </div>
+              </td>
+              <td>
+                <span className={PRIO_CLASS[t.priority_id] ?? 'prio prio-2'}>
+                  <span className="prio-dot" />{PRIO_LABELS[t.priority_id] ?? 'Média'}
+                </span>
+              </td>
+              <td>
+                <span className={`badge badge-status-${t.state_id}`}>
+                  {STATUS_LABELS[t.state_id] || 'Desconhecido'}
+                </span>
+              </td>
+              <td style={{ fontSize: 13, color: 'var(--gray-600)' }}>
+                {new Date(t.created_at).toLocaleDateString('pt-BR')}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
-      <div className="pagination">
-        <span>Página {page}</span>
-        <div className="page-btns">
-          <button className="page-btn" onClick={onPrev} disabled={page <= 1}>‹</button>
-          <button className="page-btn active">{page}</button>
-          <button className="page-btn" onClick={onNext} disabled={tickets.length < 25}>›</button>
+      <div className="pagination" style={{ padding: '16px 20px', background: 'var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)' }}>
+          Página <span style={{ color: 'var(--blue-dark)' }}>{page}</span>
+        </div>
+        <div className="page-btns" style={{ display: 'flex', gap: 8 }}>
+          <button 
+            className="btn btn-ghost" 
+            style={{ padding: '6px 12px', fontSize: 12, background: '#fff' }} 
+            onClick={onPrev} 
+            disabled={page <= 1}
+          >
+            Anterior
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            style={{ padding: '6px 12px', fontSize: 12, background: '#fff' }} 
+            onClick={onNext} 
+            disabled={tickets.length < 25}
+          >
+            Próxima
+          </button>
         </div>
       </div>
     </div>

@@ -48,10 +48,13 @@ export async function getTicketDetail(localId, user) {
 
   const updates = updateRepo.findByTicket(localId);
 
+  const ticket = mergeTicket(local, zammadTicket);
   return {
-    ticket: mergeTicket(local, zammadTicket),
+    ticket,
     articles,
     updates,
+    createdBy: local.created_by,
+    assignedTo: local.assigned_to,
   };
 }
 
