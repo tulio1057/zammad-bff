@@ -477,11 +477,24 @@ body {
 
 .kpi-card {
   background: #fff;
-  border: 1px solid #DFEAF7;
-  border-radius: 10px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 8px rgba(0, 51, 153, 0.04);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--gray-200);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
 }
+
+.kpi-card:hover { transform: translateY(-2px); }
+
+.kpi-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+}
+.kpi-card.blue::after { background: var(--blue); }
+.kpi-card.orange::after { background: var(--orange); }
+.kpi-card.success::after { background: var(--success); }
+.kpi-card.danger::after { background: var(--danger); }
 
 .kpi-label {
   display: block;

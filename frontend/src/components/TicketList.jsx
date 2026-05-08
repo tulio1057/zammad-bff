@@ -14,12 +14,12 @@ const STATUS_FILTERS = [
   { value: 'resolved', label: 'Resolvidos' },
 ];
 
-// Categorias base sempre disponíveis no filtro
+// Categorias base alinhadas com os labels do backend
 const BASE_CATEGORIES = [
-  'Manutenção Predial',
-  'Gestão de Celulares Corporativos',
+  'Chamados ERP',
   'Chamados TI',
-  'Chamados ERP'
+  'Gestão de Celulares Corporativos',
+  'Manutenção Predial',
 ];
 
 function sortTickets(tickets) {
@@ -59,7 +59,7 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
   // Filtros
   let filtered = sorted;
   if (selectedCategory) {
-    filtered = sorted.filter(t => t.category === selectedCategory || t.group === selectedCategory);
+    filtered = sorted.filter(t => t.category === selectedCategory);
   }
   if (statusFilter === 'open') {
     filtered = filtered.filter((t) => [1, 2, 3].includes(t.state_id));
