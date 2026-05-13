@@ -12,7 +12,16 @@ export async function fetchTicket(id) {
   return data;
 }
 
-export async function createTicket(title, body) {
-  const { data } = await api.post("/tickets", { title, body });
+export async function createTicket(title, body, fields = {}) {
+  const { data } = await api.post("/tickets", { 
+    title, 
+    body, 
+    ...fields 
+  });
+  return data;
+}
+
+export async function fetchFormFields() {
+  const { data } = await api.get("/tickets/form-fields");
   return data;
 }

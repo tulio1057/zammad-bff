@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "name": "categorias",
+      "label": "CATEGORIAS"
+    },
+    {
+      "name": "categorias_ti",
+      "label": "CATEGORIAS TI",
+      "when": { "categorias": "Chamados TI" }
+    },
+    {
+      "name": "categoria_erp",
+      "label": "CATEGORIA ERP",
+      "when": { "categorias": "Chamados ERP" }
+    },
+    {
+      "name": "sub_categorias_ti",
+      "label": "SUB CATEGORIAS TI",
+      "when": { "categorias": "Chamados TI", "categorias_ti": "*" }
+    },
+    {
+      "name": "subcategoria_erp",
+      "label": "SUBCATEGORIA ERP",
+      "when": { "categorias": "Chamados ERP", "categoria_erp": "*" }
+    }
+  ]
+}
