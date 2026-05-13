@@ -6,27 +6,30 @@ const loginSchema = z.object({
 });
 
 const createTicketSchema = z.object({
-  title:       z.string().min(3).max(200).trim(),
-  body:        z.string().min(10).max(10000).trim(),
-  category:    z.string().max(100).trim().optional(),
-  subcategory: z.string().max(100).trim().optional(),
-  priority:    z.enum(['1', '2', '3']).optional().default('2'),
+  title:               z.string().min(3).max(200).trim(),
+  body:                z.string().min(10).max(10000).trim(),
+  category:            z.string().max(200).trim().optional(),
+  subcategory:         z.string().max(200).trim().optional(),
+  priority:            z.enum(['1', '2', '3']).optional().default('2'),
+  group:               z.string().max(200).trim().optional(),
+  classificationField: z.string().max(120).trim().optional(),
+  classificationValue: z.string().max(300).trim().optional(),
+  ticketAttributes:    z
+    .record(z.string().max(120), z.string().max(400))
+    .optional()
+    .refine((r) => !r || Object.keys(r).length <= 30, 'Muitos atributos'),
 });
 
 const changeStatusSchema = z.object({
-  status: z.enum(['aberto', 'em_andamento', 'aguardando', 'finalizado']),
+  status: z.enum(['aberto', 'em_andamento', 'aguardando', 'fechado']),
 });
 
 const addUpdateSchema = z.object({
   message: z.string().min(3).max(5000).trim(),
 });
 
-const chatMessageSchema = z.object({
-  content: z.string().min(1).max(2000).trim(),
-});
-
 const createNoticeSchema = z.object({
-  title: z.string().max(200).trim().optional(),
+  title:   z.string().max(200).trim().optional(),
   message: z.string().min(1).max(5000).trim(),
 });
 
@@ -44,9 +47,9 @@ function validate(schema) {
   };
 }
 
-export const validateLogin = validate(loginSchema);
-export const validateCreateTicket = validate(createTicketSchema);
-export const validateChangeStatus = validate(changeStatusSchema);
-export const validateAddUpdate = validate(addUpdateSchema);
-export const validateChatMessage = validate(chatMessageSchema);
-export const validateCreateNotice = validate(createNoticeSchema);
+export const validateLogin          = validate(loginSchema);
+export const validateCreateTicket   = validate(createTicketSchema);
+export const validateChangeStatus   = validate(changeStatusSchema);
+export const validateAddUpdate      = validate(addUpdateSchema);
+
+export const validateCreateNotice   = validate(createNoticeSchema);

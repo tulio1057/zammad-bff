@@ -15,6 +15,11 @@ export async function assignTicket(id) {
   return data;
 }
 
+export async function unassignTicket(id) {
+  const { data } = await api.post(`/tech/${id}/unassign`);
+  return data;
+}
+
 export async function changeStatus(id, status) {
   const { data } = await api.patch(`/tech/${id}/status`, { status });
   return data;
@@ -22,5 +27,15 @@ export async function changeStatus(id, status) {
 
 export async function addUpdate(id, message) {
   const { data } = await api.post(`/tech/${id}/update`, { message });
+  return data;
+}
+
+export async function reassignTicket(id, ownerId) {
+  const { data } = await api.post(`/tech/${id}/reassign`, { owner_id: ownerId });
+  return data;
+}
+
+export async function listAgents() {
+  const { data } = await api.get('/tech/agents');
   return data;
 }

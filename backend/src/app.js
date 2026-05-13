@@ -9,12 +9,14 @@ import authRoutes from './routes/auth.routes.js';
 import ticketRoutes from './routes/ticket.routes.js';
 import technicianRoutes from './routes/technician.routes.js';
 import noticeRoutes from './routes/notice.routes.js';
+import setupRoutes from './routes/setup.routes.js';
 
 // Inicializa banco na importação
 import './db/database.js';
 
 const app = express();
 
+// Security headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -26,6 +28,7 @@ app.use(helmet({
   },
 }));
 
+// CORS — only allow our frontend
 app.use(cors({
   origin: env.FRONTEND_URL,
   credentials: true,
@@ -37,13 +40,19 @@ app.use(express.json({ limit: '16kb' }));
 app.use(cookieParser());
 app.use(globalLimiter);
 
-app.use('/api/auth',     authRoutes);
-app.use('/api/tickets',  ticketRoutes);
-app.use('/api/tech',     technicianRoutes);
+// Routes
+app.use('/api/auth',         authRoutes);
+app.use('/api/tickets',      ticketRoutes);
+app.use('/api/tech',         technicianRoutes);
 app.use('/api/tech/notices', noticeRoutes);
+app.use('/api/setup',       setupRoutes);
 
+// Health check
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
+
+// 404
 app.use((_, res) => res.status(404).json({ error: 'Not found' }));
+
 app.use(errorHandler);
 
 export default app;

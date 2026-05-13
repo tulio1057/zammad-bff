@@ -25,14 +25,12 @@ export default function AppRouter() {
 
           {/* Área do técnico */}
           <Route path="/tech" element={
-            <ProtectedRoute roles={['technician','admin']}><TechDashboardPage /></ProtectedRoute>
+            <ProtectedRoute roles={['technician', 'admin']}><TechDashboardPage /></ProtectedRoute>
           } />
           <Route path="/tech/tickets/:id" element={
-            <ProtectedRoute roles={['technician','admin']}><TechTicketDetailPage /></ProtectedRoute>
+            <ProtectedRoute roles={['technician', 'admin']}><TechTicketDetailPage /></ProtectedRoute>
           } />
-          <Route path="/tech/notices" element={
-            <ProtectedRoute roles={['technician','admin']}><NoticesPage /></ProtectedRoute>
-          } />
+
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
