@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { login } from '../services/auth.service.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import SerGasLogo from '../components/SerGasLogo.jsx';
+
+function getRedirectPath(user) {
+  if (user?.role === 'technician') return '/tech';
+  return '/dashboard';
+}
 
 export default function LoginPage() {
   const { user, loading, setUser } = useAuth();
@@ -10,7 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) return <Navigate to="/dashboard" replace />;
+  if (!loading && user) return <Navigate to={getRedirectPath(user)} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,10 +32,9 @@ export default function LoginPage() {
       }
 
       setUser(data.user);
-      const destination = data.user.role === 'technician' ? '/tech' : '/dashboard';
-      navigate(destination, { replace: true });
+      navigate(getRedirectPath(data.user), { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao fazer login. Verifique suas credenciais.');
+      setError(err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -39,16 +44,17 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="logo-icon">SC</div>
+          <span className="login-badge">Companhia Sergipana de Gás</span>
+          <SerGasLogo size="md" />
           <h1>SERGAS</h1>
-          <p>Sistema de Chamados Internos</p>
+          <p>Plataforma de atendimento interno</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
           {error && <div className="alert alert-error">{error}</div>}
 
           <div className="field">
-            <label htmlFor="email">E-mail Corporativo</label>
+            <label htmlFor="email">E-mail</label>
             <input
               id="email"
               type="email"
@@ -56,13 +62,13 @@ export default function LoginPage() {
               required
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="seu.nome@sergas.com.br"
+              placeholder="seu@email.com"
               disabled={submitting}
             />
           </div>
 
           <div className="field">
-            <label htmlFor="password">Senha de Acesso</label>
+            <label htmlFor="password">Senha</label>
             <input
               id="password"
               type="password"
@@ -75,13 +81,19 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
-            {submitting ? 'Autenticando...' : 'Entrar no Sistema'}
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 
-        <div style={{ marginTop: 32, textAlign: 'center', fontSize: 11, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-          Tecnologia da Informação &copy; 2026
+        <div className="login-footer">
+          <a href="https://www.sergipegas.com.br" target="_blank" rel="noreferrer">
+            Site institucional
+          </a>
+          <span>•</span>
+          <a href="https://www.instagram.com/sergipegas/" target="_blank" rel="noreferrer">
+            Instagram
+          </a>
         </div>
       </div>
     </div>

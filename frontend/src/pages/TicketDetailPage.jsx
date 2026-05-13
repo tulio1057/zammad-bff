@@ -47,10 +47,15 @@ export default function TicketDetailPage() {
         <div className="ticket-meta">
           <span>Nº {ticket.number}</span>
           <span>Criado em {new Date(ticket.created_at).toLocaleString('pt-BR')}</span>
+          {(ticket.category || ticket.subcategory) && (
+            <span>
+              {[ticket.category, ticket.subcategory].filter(Boolean).join(' › ')}
+            </span>
+          )}
         </div>
 
         <div className="articles">
-          <h3>Histórico do Chamado</h3>
+          <h3>Mensagens</h3>
           {articles?.map((a) => (
             <div key={a.id} className={`article ${a.internal ? 'internal' : ''}`}>
               <div className="article-header">

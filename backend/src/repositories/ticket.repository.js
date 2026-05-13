@@ -42,24 +42,38 @@ export function findAll({ status, assignedTo } = {}) {
   return db.prepare(query).all(...params);
 }
 
-export function tryAssign(ticketId, technicianId, technicianName) {
-  const lockTTL = now() - 5;
-  const result = db.prepare(`
-    UPDATE local_tickets
-    SET assigned_to = ?, assigned_name = ?, status = 'em_andamento',
-        locked_by = NULL, locked_at = NULL, updated_at = ?
-    WHERE id = ?
-      AND assigned_to IS NULL
-      AND (locked_by IS NULL OR locked_at < ?)
-  `).run(technicianId, technicianName, now(), ticketId, lockTTL);
-  return result.changes > 0;
+export function upsertByZammadId(zammadId, createdBy = 'system') {
+  const existing = db.prepare('SELECT * FROM local_tickets WHERE zammad_id = ?').get(zammadId);
+  if (existing) return existing;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO local_tickets (id, zammad_id, created_by, status)
+    VALUES (?, ?, ?, 'aberto')
+  `).run(id, zammadId, String(createdBy));
+
+  return db.prepare('SELECT * FROM local_tickets WHERE id = ?').get(id);
+}
+
+export function setAssignment(zammadId, technicianId, technicianName) {
+  const local = upsertByZammadId(zammadId, technicianId);
+  db.prepare(`
+    UPDATE local_tickets SET assigned_to = ?, assigned_name = ?, updated_at = ? WHERE id = ?
+  `).run(technicianId, technicianName, now(), local.id);
+  return db.prepare('SELECT * FROM local_tickets WHERE id = ?').get(local.id);
+}
+
+export function clearAssignment(zammadId) {
+  const local = upsertByZammadId(zammadId);
+  db.prepare(`
+    UPDATE local_tickets SET assigned_to = NULL, assigned_name = NULL, updated_at = ? WHERE id = ?
+  `).run(now(), local.id);
+  return db.prepare('SELECT * FROM local_tickets WHERE id = ?').get(local.id);
 }
 
 const VALID_TRANSITIONS = {
-  aberto:       ['em_andamento'],
-  em_andamento: ['aguardando', 'finalizado'],
-  aguardando:   ['em_andamento'],
-  finalizado:   [],
+  aberto:  ['fechado'],
+  fechado: [],
 };
 
 export function transition(ticketId, technicianId, newStatus) {

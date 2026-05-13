@@ -31,10 +31,10 @@ export async function loginUser(email, password) {
   const refreshToken = uuidv4();
   refreshTokenStore.set(refreshToken, {
     userId: zammadUser.id,
-    email: zammadUser.email,   
-    name: `${zammadUser.firstname} ${zammadUser.lastname}`, 
-    role, 
-    zammadId: zammadUser.id, 
+    email: zammadUser.email,
+    name: `${zammadUser.firstname} ${zammadUser.lastname}`,
+    role,
+    zammadId: zammadUser.id,
     expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -51,13 +51,12 @@ export async function refreshAccessToken(refreshToken) {
     throw new Error('Invalid or expired refresh token');
   }
 
-
   const payload = {
     sub: stored.userId,
     email: stored.email,
     name: stored.name,
     role: stored.role,
-    zammadId: stored.zammadId, 
+    zammadId: stored.zammadId,
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
