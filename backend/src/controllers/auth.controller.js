@@ -37,7 +37,7 @@ export async function refresh(req, res, next) {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 60 * 60 * 1000,
     });
 
