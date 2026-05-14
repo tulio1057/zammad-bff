@@ -28,9 +28,19 @@ app.use(helmet({
   },
 }));
 
-// CORS — only allow our frontend
+// CORS — suporta múltiplas origens separadas por vírgula e remove barras do final
+const allowedOrigins = env.FRONTEND_URL
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''));
+
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS bloqueado para: ${origin}`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type'],
