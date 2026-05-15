@@ -15,8 +15,8 @@ export async function assignTicket(id) {
   return data;
 }
 
-export async function unassignTicket(id) {
-  const { data } = await api.post(`/tech/${id}/unassign`);
+export async function unassignTicket(id, reason) {
+  const { data } = await api.post(`/tech/${id}/unassign`, { reason });
   return data;
 }
 

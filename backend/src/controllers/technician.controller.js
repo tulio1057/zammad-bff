@@ -43,7 +43,14 @@ export async function unassignTicket(req, res, next) {
   try {
     const { id } = req.params;
     if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid ticket ID' });
-    const ticket = await techService.unassignTicket(parseInt(id), req.user);
+    const { reason } = req.body;
+    if (!reason || reason.trim().length < 10) {
+      return res.status(422).json({ error: 'O motivo deve ter no mínimo 10 caracteres.' });
+    }
+    if (reason.trim().length > 500) {
+      return res.status(422).json({ error: 'O motivo deve ter no máximo 500 caracteres.' });
+    }
+    const ticket = await techService.unassignTicket(parseInt(id), req.user, reason.trim());
     res.json(ticket);
   } catch (err) { next(err); }
 }

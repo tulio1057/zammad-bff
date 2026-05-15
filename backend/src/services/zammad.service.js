@@ -428,3 +428,8 @@ export async function getTicketFields({ treeFieldName, classificationSteps = [] 
     return { groups, classification: { mode: 'none', field: null, display: null, tree: [], steps: [] } };
   }
 }
+
+export async function requestPasswordReset(userId) {
+  const { data } = await zammadClient.post(`/users/${userId}/password_reset`);
+  return data;
+}

@@ -53,3 +53,14 @@ export const validateChangeStatus   = validate(changeStatusSchema);
 export const validateAddUpdate      = validate(addUpdateSchema);
 
 export const validateCreateNotice   = validate(createNoticeSchema);
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email().max(254),
+});
+
+const unassignSchema = z.object({
+  reason: z.string().min(10).max(500).trim(),
+});
+
+export const validateForgotPassword = validate(forgotPasswordSchema);
+export const validateUnassign       = validate(unassignSchema);

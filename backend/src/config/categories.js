@@ -57,14 +57,32 @@ export const CATEGORY_MAP = {
 };
 
 /**
- * Retorna group_id e priority_id baseado na categoria.
- * Se a categoria não for encontrada, usa defaults.
+ * Mapa de subcategorias com prioridade específica que difere da categoria-pai.
+ * Apenas subcategorias que elevam ou reduzem a prioridade padrão precisam ser listadas.
  */
-export function resolveCategory(category) {
+export const SUBCATEGORY_PRIORITY_MAP = {
+  // TI — Acesso e Identidade
+  'Comprometimento de Conta':          PRIORITY.CRITICO,
+  'Bloqueio de Conta':                 PRIORITY.CRITICO,
+  // TI — Hardware e Equipamentos
+  'Equipamento com Falha Total':       PRIORITY.ALTO,
+  // TI — Software e Sistemas
+  'Sistema Indisponível':              PRIORITY.CRITICO,
+  // Manutenção Predial — Estrutura e Outros
+  'Risco de Queda / Estrutura Crítica': PRIORITY.CRITICO,
+};
+
+/**
+ * Retorna group_id e priority_id baseado na categoria e subcategoria.
+ * Aplica sempre a MAIOR prioridade entre categoria e subcategoria.
+ */
+export function resolveCategory(category, subcategory) {
   const match = CATEGORY_MAP[category];
-  if (match) {
-    return { groupId: match.group, priorityId: match.priority };
-  }
-  // Fallback: grupo TI, prioridade média
-  return { groupId: GROUPS.TI, priorityId: PRIORITY.MEDIO };
+  const basePriority = match ? match.priority : PRIORITY.MEDIO;
+  const baseGroup    = match ? match.group    : GROUPS.TI;
+
+  const subPriority  = subcategory ? (SUBCATEGORY_PRIORITY_MAP[subcategory] ?? null) : null;
+  const priorityId   = subPriority !== null ? Math.max(basePriority, subPriority) : basePriority;
+
+  return { groupId: baseGroup, priorityId };
 }
