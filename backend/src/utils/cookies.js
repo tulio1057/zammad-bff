@@ -1,11 +1,10 @@
 import { env } from '../config/env.js';
-
 const isProd = env.NODE_ENV === 'production';
 
 export const cookieOptions = {
   httpOnly: true,
-  secure: isProd,           // HTTPS obrigatório em prod (Render usa HTTPS)
-  sameSite: isProd ? 'none' : 'lax', // 'none' permite cross-origin (Vercel → Render)
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax', 
   path: '/',
 };
 

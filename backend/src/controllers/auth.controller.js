@@ -2,6 +2,15 @@ import * as authService from '../services/auth.service.js';
 import { setAuthCookies, clearAuthCookies } from '../utils/cookies.js';
 import { env } from '../config/env.js';
 
+export async function forgotPassword(req, res, next) {
+  try {
+    await authService.forgotPassword(req.body.email);
+    res.json({ ok: true, message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
@@ -37,7 +46,7 @@ export async function refresh(req, res, next) {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 60 * 60 * 1000,
     });
 

@@ -17,3 +17,12 @@ export const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts, please try again in 15 minutes.' },
   skipSuccessfulRequests: true,
 });
+
+export const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset attempts, please try again in 1 hour.' },
+  skipSuccessfulRequests: false,
+});
