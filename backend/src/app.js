@@ -10,6 +10,7 @@ import ticketRoutes from './routes/ticket.routes.js';
 import technicianRoutes from './routes/technician.routes.js';
 import noticeRoutes from './routes/notice.routes.js';
 import setupRoutes from './routes/setup.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 // Inicializa banco na importação
 import './db/database.js';
@@ -56,6 +57,7 @@ app.use('/api/tickets',      ticketRoutes);
 app.use('/api/tech',         technicianRoutes);
 app.use('/api/tech/notices', noticeRoutes);
 app.use('/api/setup',       setupRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok' }));

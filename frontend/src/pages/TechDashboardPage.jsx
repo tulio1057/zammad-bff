@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { fetchTechTickets, assignTicket } from '../services/technician.service.js';
 import { fetchFormFields } from '../services/ticket.service.js';
 import SerGasLogo from '../components/SerGasLogo.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 import NoticesHighlight from '../components/NoticesHighlight.jsx';
 import TicketDrawer from '../components/TicketDrawer.jsx';
 
@@ -292,6 +293,7 @@ export default function TechDashboardPage() {
             <div style={{ fontSize: 10, color: 'var(--orange)', textTransform: 'uppercase', fontWeight: 800 }}>Técnico Especialista</div>
           </div>
           <div className="user-avatar">{getInitials(user?.name)}</div>
+          <ThemeToggle />
           <button className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '6px 12px', fontSize: 11, marginLeft: 8, border: '1px solid rgba(255,255,255,0.2)' }} onClick={handleLogout}>
             Sair
           </button>
