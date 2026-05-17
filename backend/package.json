@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.9.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
@@ -21,12 +22,12 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.18.0",
     "pino": "^8.17.2",
     "pino-pretty": "^10.3.1",
     "uuid": "^9.0.0",
-    "zod": "^3.22.4",
-    "better-sqlite3": "^12.9.0",
-    "xss": "^1.0.14"
+    "xss": "^1.0.14",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
