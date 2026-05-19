@@ -59,7 +59,6 @@ export default function TicketDetailPage() {
           {articles?.map((a) => (
             <div key={a.id} className={`article ${a.internal ? 'internal' : ''}`}>
               <div className="article-header">
-                <strong>{a.from || 'Sistema'}</strong>
                 <span>{new Date(a.created_at).toLocaleString('pt-BR')}</span>
               </div>
               <div
