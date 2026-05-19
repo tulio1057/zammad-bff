@@ -26,6 +26,8 @@ export default function TechTicketDetailPage() {
   const [error, setError] = useState("");
   const [updateMsg, setUpdateMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [unassignReason, setUnassignReason] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -55,10 +57,13 @@ export default function TechTicketDetailPage() {
   }
 
   async function handleUnassign() {
+    if (!showUnassignModal) { setShowUnassignModal(true); return; }
     setSubmitting(true);
     try {
-      const updatedTicket = await unassignTicket(id);
+      const updatedTicket = await unassignTicket(id, unassignReason);
       setData(prev => prev ? { ...prev, ticket: updatedTicket } : { ticket: updatedTicket, articles: [] });
+      setShowUnassignModal(false);
+      setUnassignReason("");
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cancelar atribuição");
     } finally {
@@ -139,12 +144,8 @@ export default function TechTicketDetailPage() {
                   <>
                     <button
                       className="btn btn-ghost"
-                      style={{
-                        backgroundColor: "#6B7A8F",
-                        color: "#fff",
-                        border: "1px solid #6B7A8F",
-                      }}
-                      onClick={handleUnassign}
+                      style={{ backgroundColor: "#6B7A8F", color: "#fff", border: "1px solid #6B7A8F" }}
+                      onClick={() => setShowUnassignModal(true)}
                       disabled={submitting}
                     >
                       Sair do Chamado
@@ -206,7 +207,6 @@ export default function TechTicketDetailPage() {
                     className={`article ${a.internal ? "internal" : ""}`}
                   >
                     <div className="article-header">
-                      <strong>{a.from || "Sistema"}</strong>
                       <span>
                         {new Date(a.created_at).toLocaleString("pt-BR")}
                       </span>
@@ -223,7 +223,43 @@ export default function TechTicketDetailPage() {
         )}
       </main>
 
-
+      {showUnassignModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--color-surface, #fff)', borderRadius: 8, padding: '1.5rem', width: '100%', maxWidth: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Confirmar saída do chamado</h3>
+              <button type="button" className="btn btn-ghost" onClick={() => { setShowUnassignModal(false); setUnassignReason(''); }} disabled={submitting}>✕</button>
+            </div>
+            <div className="field">
+              <label htmlFor="unassign-reason">Motivo da saída <span style={{ color: 'red' }}>*</span></label>
+              <textarea
+                id="unassign-reason"
+                rows={4}
+                value={unassignReason}
+                onChange={(e) => setUnassignReason(e.target.value)}
+                placeholder="Descreva o motivo pelo qual está saindo deste chamado..."
+                maxLength={500}
+                disabled={submitting}
+                style={{ resize: 'vertical' }}
+              />
+              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--color-text-muted, #6b7280)' }}>
+                {unassignReason.length}/500
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowUnassignModal(false); setUnassignReason(''); }} disabled={submitting}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-primary"
+                style={{ backgroundColor: '#6B7A8F', borderColor: '#6B7A8F' }}
+                onClick={handleUnassign}
+                disabled={submitting || unassignReason.trim().length < 10}>
+                {submitting ? 'Saindo...' : 'Confirmar saída'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

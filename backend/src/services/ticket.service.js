@@ -1,6 +1,8 @@
 import { loadTicketClassificationConfig } from '../config/ticket-classification.js';
 import { env } from '../config/env.js';
 import * as zammadService from './zammad.service.js';
+import { resolveCategory } from '../config/categories.js';
+import { logger } from '../config/logger.js';
 
 export async function getTickets({ user, page, perPage }) {
   const userId = user.role !== 'admin' ? user.zammadId : undefined;
@@ -100,11 +102,14 @@ export async function createNewTicket({
     }
   }
 
+  const { priorityId: resolvedPriority } = resolveCategory(category, subcategory);
+  logger.info({ category, subcategory, resolvedPriority }, 'Auto-resolved ticket priority');
+
   return zammadService.createTicket({
     title,
     body,
     customerId:   user.zammadId,
-    priorityId:   Number(priority ?? 2),
+    priorityId:   resolvedPriority,
     customAttributes,
   });
 }

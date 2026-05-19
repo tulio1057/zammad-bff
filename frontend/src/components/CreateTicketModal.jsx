@@ -1,6 +1,33 @@
 import { useState, useEffect } from 'react';
 import { createTicket, fetchFormFields } from '../services/ticket.service.js';
 
+const PRIORITY_LABELS = { 1: '🟢 Baixa', 2: '🟡 Média', 3: '🟠 Alta', 4: '🔴 Crítica' };
+
+// Mapa local espelhado do backend/src/config/categories.js
+const CATEGORY_PRIORITY_MAP = {
+  'Acesso e Identidade': 3, 'Hardware e Equipamentos': 2, 'Rede e Conectividade': 4,
+  'Software e Sistemas': 2, 'E-mail e Comunicação': 3, 'Servidores e Infraestrutura': 4,
+  'Segurança da Informação': 4, 'Solicitações e Requisições': 1, 'Dispositivos Móveis': 2,
+  'Solicitação de Aparelho': 2, 'Troca de Aparelho': 3, 'Troca de Chip (SIM)': 3,
+  'Troca de Linha / Número': 2, 'Configuração e Suporte': 2,
+  'Mobiliário': 2, 'Elétrica': 4, 'Portas e Fechaduras': 3, 'Hidráulica': 3,
+  'Climatização': 2, 'Estrutura e Outros': 1,
+  'Operação do Sistema': 4, 'Processos e Configurações': 3, 'Acessos e Usuários': 3,
+  'Relatórios e Documentos': 2, 'Integrações': 4, 'Implantação e Melhoria': 1,
+};
+
+const SUBCATEGORY_PRIORITY_MAP = {
+  'Comprometimento de Conta': 4, 'Bloqueio de Conta': 4,
+  'Equipamento com Falha Total': 3, 'Sistema Indisponível': 4,
+  'Risco de Queda / Estrutura Crítica': 4,
+};
+
+function resolvePriorityFromSelection(category, subcategory) {
+  const base = CATEGORY_PRIORITY_MAP[category] ?? 2;
+  const sub  = subcategory ? (SUBCATEGORY_PRIORITY_MAP[subcategory] ?? null) : null;
+  return sub !== null ? Math.max(base, sub) : base;
+}
+
 function classificationLevels(tree, path) {
   const levels = [];
   let nodes = tree;
@@ -63,7 +90,6 @@ export default function CreateTicketModal({ onClose, onCreated }) {
     title: '',
     body: '',
     group: '',
-    priority: '2',
     classificationPath: [],
     ticketAttributes: {},
   });
@@ -159,9 +185,19 @@ export default function CreateTicketModal({ onClose, onCreated }) {
         : undefined;
 
     try {
+      const category    = form.ticketAttributes?.categorias_all ?? null;
+      const subcategory = category
+        ? (form.ticketAttributes?.erp_subcategoria
+          ?? form.ticketAttributes?.subcategoryti
+          ?? form.ticketAttributes?.sub_categoria_gestao_celulares_corporativos
+          ?? form.ticketAttributes?.sub_categoria_predial
+          ?? null)
+        : null;
+
       await createTicket(form.title, form.body, {
         group: form.group,
-        priority: form.priority,
+        category,
+        subcategory,
         ...(mode === 'fields' && Object.keys(form.ticketAttributes).length > 0
           ? { ticketAttributes: form.ticketAttributes }
           : {}),
@@ -310,12 +346,28 @@ export default function CreateTicketModal({ onClose, onCreated }) {
               />
             </div>
             <div className="field">
-              <label>Prioridade</label>
-              <select value={form.priority} onChange={(e) => set('priority', e.target.value)} disabled={submitting}>
-                <option value="1">Baixa</option>
-                <option value="2">Média</option>
-                <option value="3">Alta</option>
-              </select>
+              {(() => {
+                const cat = form.ticketAttributes?.categorias_all ?? null;
+                const sub = cat
+                  ? (form.ticketAttributes?.erp_subcategoria
+                    ?? form.ticketAttributes?.subcategoryti
+                    ?? form.ticketAttributes?.sub_categoria_gestao_celulares_corporativos
+                    ?? form.ticketAttributes?.sub_categoria_predial
+                    ?? null)
+                  : null;
+                const p = resolvePriorityFromSelection(cat, sub);
+                return (
+                  <>
+                    <label>Prioridade</label>
+                    <div style={{ padding: '0.5rem 0.75rem', border: '1px solid var(--gray-300, #d1d5db)', borderRadius: 6, background: 'var(--gray-50, #f9fafb)', fontSize: '0.9rem' }}>
+                      {PRIORITY_LABELS[p] ?? '🟡 Média'}
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #6b7280)', marginLeft: 8 }}>
+                        definida automaticamente pela categoria
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

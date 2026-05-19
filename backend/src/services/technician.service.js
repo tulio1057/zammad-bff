@@ -150,7 +150,7 @@ export async function listTickets({ user, status, assignedTo } = {}) {
   });
 
   const rawList = Array.isArray(rawData) ? rawData : (rawData.tickets ?? []);
-  let list = rawList.map(normalizeTicket);
+  let list = await Promise.all(rawList.map(t => enrichTicketOwner(normalizeTicket(t))));
 
   if (status)     list = list.filter((t) => t.status === status);
   if (assignedTo) list = list.filter((t) => t.assignedTo === String(assignedTo));
@@ -196,18 +196,17 @@ export async function assignTicket(zammadId, technician) {
   return ticket;
 }
 
-export async function unassignTicket(zammadId, technician) {
+export async function unassignTicket(zammadId, technician, reason) {
   await ensureStateCache();
 
   const zammadTicket = await zammad.getTicket(zammadId);
   checkOwnership(zammadTicket, technician);
 
-  await zammad.addInternalNote(
-    zammadId,
-    `👋 Atendimento finalizado por ${technician.name}.`,
-  );
+  const noteBody = reason
+    ? `👋 ${technician.name} saiu do chamado.\nMotivo: ${reason}`
+    : `👋 Atendimento finalizado por ${technician.name}.`;
 
-  // owner_id = 1 é "não atribuído" no Zammad
+  await zammad.addInternalNote(zammadId, noteBody);
   await zammad.assignTicketOwner(zammadId, 1);
 
   logger.info({ zammadId, technicianId: technician.sub }, 'Ticket unassigned');
