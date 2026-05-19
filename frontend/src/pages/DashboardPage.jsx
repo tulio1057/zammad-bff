@@ -5,6 +5,7 @@ import { useTickets } from '../hooks/useTickets.js';
 import CreateTicketModal from '../components/CreateTicketModal.jsx';
 import TicketList from '../components/TicketList.jsx';
 import SerGasLogo from '../components/SerGasLogo.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 function getInitials(name = '') {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -42,6 +43,7 @@ export default function DashboardPage() {
         <div className="header-user">
           <span className="user-name">{user?.name}</span>
           <div className="user-avatar">{getInitials(user?.name)}</div>
+          <ThemeToggle />
           <button className="btn btn-ghost header-logout-btn" onClick={handleLogout}>
             Sair
           </button>

@@ -74,3 +74,17 @@ export function revokeRefreshToken(refreshToken) {
 export function verifyAccessToken(token) {
   return jwt.verify(token, env.JWT_SECRET, { issuer: 'zammad-bff' });
 }
+
+export async function forgotPassword(email) {
+  try {
+    const { getUserByEmail, requestPasswordReset } = await import('./zammad.service.js');
+    const user = await getUserByEmail(email);
+    if (user?.id) {
+      await requestPasswordReset(user.id);
+      logger.info({ userId: user.id }, 'Password reset requested');
+    }
+  } catch (err) {
+    logger.error({ error: err.message }, 'forgotPassword error (suppressed)');
+  }
+  // Always succeed — never reveal if email exists
+}
