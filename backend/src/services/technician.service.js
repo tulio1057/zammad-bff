@@ -150,7 +150,7 @@ export async function listTickets({ user, status, assignedTo } = {}) {
   });
 
   const rawList = Array.isArray(rawData) ? rawData : (rawData.tickets ?? []);
-  let list = rawList.map(normalizeTicket);
+  let list = await Promise.all(rawList.map(t => enrichTicketOwner(normalizeTicket(t))));
 
   if (status)     list = list.filter((t) => t.status === status);
   if (assignedTo) list = list.filter((t) => t.assignedTo === String(assignedTo));
