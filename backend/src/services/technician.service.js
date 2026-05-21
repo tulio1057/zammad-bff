@@ -150,7 +150,7 @@ export async function listTickets({ user, status, assignedTo } = {}) {
   });
 
   const rawList = Array.isArray(rawData) ? rawData : (rawData.tickets ?? []);
-  let list = await Promise.all(rawList.map(t => enrichTicketOwner(normalizeTicket(t))));
+  let list = rawList.map(normalizeTicket);
 
   if (status)     list = list.filter((t) => t.status === status);
   if (assignedTo) list = list.filter((t) => t.assignedTo === String(assignedTo));
@@ -223,7 +223,15 @@ export async function reassignTicket(zammadId, newOwnerId, technician) {
   const zammadTicket = await zammad.getTicket(zammadId);
   checkOwnership(zammadTicket, technician);
 
-  const newOwner = await zammad.getUser(newOwnerId);
+  // SEC-003: Garantir que o novo responsável é um agente autorizado
+  const agents = await zammad.listAgents();
+  const isAuthorizedAgent = agents.some(a => a.id === newOwnerId);
+  if (!isAuthorizedAgent) {
+    logger.warn({ zammadId, requestedOwnerId: newOwnerId, by: technician.sub }, 'Reassign blocked: target is not an authorized agent');
+    throw Object.assign(new Error('Target user is not an authorized agent'), { status: 403 });
+  }
+
+  const newOwner = agents.find(a => a.id === newOwnerId);
   const newOwnerName = [newOwner.firstname, newOwner.lastname].filter(Boolean).join(' ').trim() || String(newOwnerId);
 
   await zammad.assignTicketOwner(zammadId, newOwnerId);

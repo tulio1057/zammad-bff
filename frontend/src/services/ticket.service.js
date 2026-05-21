@@ -13,11 +13,12 @@ export async function fetchTicket(id) {
 }
 
 export async function createTicket(title, body, fields = {}) {
-  const { data } = await api.post("/tickets", { 
-    title, 
-    body, 
-    ...fields 
+  // Remove campos undefined/null para não quebrar validação Zod no backend
+  const payload = { title, body, ...fields };
+  Object.keys(payload).forEach(k => {
+    if (payload[k] === null || payload[k] === undefined) delete payload[k];
   });
+  const { data } = await api.post("/tickets", payload);
   return data;
 }
 

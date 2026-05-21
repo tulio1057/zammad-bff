@@ -79,9 +79,9 @@ export async function createNewTicket({
   user,
 }) {
   const customAttributes = {};
-  if (group)      customAttributes.group      = group;
-  if (category)   customAttributes.category   = category;
-  if (subcategory) customAttributes.subcategory = subcategory;
+  // NOTA: category e subcategory são valores internos usados para resolver prioridade/grupo.
+  // NÃO devem ser enviados ao Zammad como campos genéricos — o Zammad não os reconhece.
+  // Os valores reais já estão em ticketAttributes com os nomes corretos dos campos (ex: "categorias_all").
   if (
     classificationField &&
     classificationValue != null &&
@@ -94,21 +94,56 @@ export async function createNewTicket({
   const attrsData   = await zammadService.fetchTicketObjectAttributes();
   const allowed     = zammadService.classificationAllowlistFromAttributes(attrsData, configSteps);
 
-  if (ticketAttributes && typeof ticketAttributes === 'object' && allowed.size > 0) {
-    for (const [k, v] of Object.entries(ticketAttributes)) {
-      if (!allowed.has(k)) continue;
-      if (v == null || String(v).trim() === '') continue;
-      customAttributes[k] = String(v).trim();
+  if (ticketAttributes && typeof ticketAttributes === 'object') {
+    if (allowed.size > 0) {
+      // Allowlist populada: filtrar apenas campos permitidos
+      for (const [k, v] of Object.entries(ticketAttributes)) {
+        if (!allowed.has(k)) continue;
+        if (v == null || String(v).trim() === '') continue;
+        customAttributes[k] = String(v).trim();
+      }
+    } else {
+      // Allowlist vazia (auto-discover sem grupos no momento do createTicket):
+      // Permitir todos os campos que existam como atributo de Ticket no Zammad
+      const validTicketAttrs = new Set(
+        attrsData
+          .filter(f => f.object === 'Ticket' && f.active !== false)
+          .map(f => f.name)
+      );
+      for (const [k, v] of Object.entries(ticketAttributes)) {
+        if (!validTicketAttrs.has(k)) continue;
+        if (v == null || String(v).trim() === '') continue;
+        customAttributes[k] = String(v).trim();
+      }
     }
   }
 
-  const { priorityId: resolvedPriority } = resolveCategory(category, subcategory);
-  logger.info({ category, subcategory, resolvedPriority }, 'Auto-resolved ticket priority');
+  // Resolver prioridade: prefere o valor calculado pelo frontend (mais preciso, tem priorityMap dos steps)
+  const { groupId: categoryGroupId, priorityId: fallbackPriority } = resolveCategory(category, subcategory);
+  const resolvedPriority = (priority && Number(priority) >= 1 && Number(priority) <= 4)
+    ? Number(priority)
+    : fallbackPriority;
+
+  // Resolver group_id: sempre prefere o nome enviado pelo frontend (lookup real no Zammad)
+  // O fallback para categoryGroupId (hardcoded) só é usado se o nome não resolver
+  let resolvedGroupId;
+  if (group) {
+    resolvedGroupId = await zammadService.getGroupIdByName(group);
+    if (!resolvedGroupId) {
+      logger.warn({ group, categoryGroupId }, 'getGroupIdByName returned undefined — falling back to category group ID');
+      resolvedGroupId = categoryGroupId || undefined;
+    }
+  } else {
+    resolvedGroupId = categoryGroupId || undefined;
+  }
+
+  logger.info({ category, subcategory, resolvedPriority, group, resolvedGroupId }, 'Resolved ticket fields');
 
   return zammadService.createTicket({
     title,
     body,
     customerId:   user.zammadId,
+    groupId:      resolvedGroupId,
     priorityId:   resolvedPriority,
     customAttributes,
   });

@@ -26,7 +26,7 @@ export async function login(req, res, next) {
         role: user.role,
       },
       isAdmin,
-      zammadUrl: isAdmin ? env.ZAMMAD_URL : undefined,
+      // SEC-006: zammadUrl removida da resposta — URL interna não deve ser exposta ao frontend
     });
   } catch (err) {
     if (err.response?.status === 401) {
@@ -38,17 +38,12 @@ export async function login(req, res, next) {
 
 export async function refresh(req, res, next) {
   try {
-    const refreshToken = req.cookies?.refresh_token;
-    if (!refreshToken) return res.status(401).json({ error: 'No refresh token' });
+    const oldRefreshToken = req.cookies?.refresh_token;
+    if (!oldRefreshToken) return res.status(401).json({ error: 'No refresh token' });
 
-    const { accessToken } = await authService.refreshAccessToken(refreshToken);
+    const { accessToken, newRefreshToken } = await authService.refreshAccessToken(oldRefreshToken);
 
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000,
-    });
+    setAuthCookies(res, { accessToken, refreshToken: newRefreshToken });
 
     res.json({ ok: true });
   } catch (err) {
@@ -61,6 +56,8 @@ export function logout(req, res) {
   const refreshToken = req.cookies?.refresh_token;
   if (refreshToken) authService.revokeRefreshToken(refreshToken);
   clearAuthCookies(res);
+  // Limpa também o cookie antigo com path restrito (migração de sessões antigas)
+  res.clearCookie('refresh_token', { ...cookieOptions, path: '/api/auth/refresh' });
   res.json({ ok: true });
 }
 

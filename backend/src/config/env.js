@@ -9,6 +9,10 @@ const envSchema = z.object({
   ZAMMAD_API_TOKEN: z.string().min(1),
   JWT_SECRET:     z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('15m'),
+  /** Rate limiting */
+  RATE_LIMIT_WINDOW_MS:  z.coerce.number().default(900000),  // 15 min
+  RATE_LIMIT_MAX:        z.coerce.number().default(100),
+  LOGIN_RATE_LIMIT_MAX:  z.coerce.number().default(10),
   /** Nome interno do atributo Ticket (tree_select) se usar modo árvore (sem arquivo de passos) */
   ZAMMAD_TICKET_TREE_CLASSIFICATION_FIELD: z.string().max(120).optional(),
   /** Caminho para JSON de passos (vários selects); ver ticket-classification.example.json */

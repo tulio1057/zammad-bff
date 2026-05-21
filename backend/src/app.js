@@ -22,9 +22,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:'],
+      scriptSrc:  ["'self'"],
+      // SEC-011: removido 'unsafe-inline' — usar arquivos CSS externos
+      // Se houver estilos inline legítimos do React, considerar nonces por request
+      styleSrc:   ["'self'"],
+      imgSrc:     ["'self'", 'data:'],
     },
   },
 }));

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { CATEGORY_MAP, SUBCATEGORY_PRIORITY_MAP } from "../config/categories.js";
 
 const zammadClient = axios.create({
   baseURL: `${env.ZAMMAD_URL}/api/v1`,
@@ -14,11 +15,14 @@ const zammadClient = axios.create({
 zammadClient.interceptors.response.use(
   (res) => res,
   (err) => {
+    // SEC-005: logar apenas campos seguros — nunca err.config (contém Authorization header)
     logger.error(
       {
         status: err.response?.status,
-        url: err.config?.url,
-        data: err.response?.data,
+        url: err.config?.url,   // apenas a URL, sem headers
+        errorCode: err.code,
+        // err.response?.data pode conter mensagem de erro do Zammad (sem credenciais)
+        zammadMessage: err.response?.data?.error ?? err.response?.data?.errors ?? undefined,
       },
       "Zammad API error",
     );
@@ -42,18 +46,35 @@ export async function authenticateUser(email, password) {
 // ─── Tickets ──────────────────────────────────────────────────────────────────
 
 export async function listTickets({ page = 1, perPage = 25, userId } = {}) {
-  const query = userId ? `customer_id:${userId}` : "id:*";
-  const params = {
-    query,
-    page,
-    per_page: perPage,
-    sort_by: "created_at",
-    sort_dir: "desc",
-    expand: true,
-  };
-
-  const { data } = await zammadClient.get("/tickets/search", { params });
-  return data;
+  // Tenta primeiro via /tickets/search (requer Elasticsearch no Zammad)
+  try {
+    const query = userId ? `customer_id:${userId}` : "id:*";
+    const params = {
+      query,
+      page,
+      per_page: perPage,
+      sort_by: "created_at",
+      sort_dir: "desc",
+    };
+    const { data } = await zammadClient.get("/tickets/search", { params });
+    return data;
+  } catch (searchErr) {
+    // Fallback: /tickets/search pode retornar 400/422 se Elasticsearch não estiver ativo
+    // Usa GET /tickets com paginação nativa do Zammad
+    if (searchErr.response?.status === 400 || searchErr.response?.status === 422 || searchErr.response?.status === 404) {
+      logger.warn({ status: searchErr.response?.status }, "tickets/search unavailable, falling back to GET /tickets");
+      const { data } = await zammadClient.get("/tickets", {
+        params: { page, per_page: perPage, expand: true },
+      });
+      // Se vier array, filtra por customer_id quando necessário
+      const list = Array.isArray(data) ? data : [];
+      if (userId) {
+        return list.filter((t) => String(t.customer_id) === String(userId));
+      }
+      return list;
+    }
+    throw searchErr;
+  }
 }
 
 export async function getTicket(ticketId) {
@@ -78,19 +99,48 @@ export async function createTicket({
   priorityId = 2,
   customAttributes = {},
 }) {
+  if (!groupId) {
+    const err = new Error('group_id is required to create a ticket');
+    err.status = 422;
+    throw err;
+  }
+
   const payload = {
     title,
     customer_id: customerId,
+    group_id:    groupId,
     priority_id: priorityId,
+    state_id:    1,          // aberto
     ...customAttributes,
-    article: { subject: title, body, type: "web", internal: false },
+    // Article mínimo — Zammad usa defaults para sender/type quando omitidos
+    article: { subject: title, body, internal: false },
   };
 
-  // If groupId is provided explicitly, use it. Otherwise rely on customAttributes.group
-  if (groupId) payload.group_id = groupId;
+  logger.info(
+    {
+      title,
+      customer_id: customerId,
+      group_id: groupId,
+      priority_id: priorityId,
+      state_id: 1,
+      customAttributeKeys: Object.keys(customAttributes),
+    },
+    "Creating ticket in Zammad"
+  );
 
-  const { data } = await zammadClient.post("/tickets", payload);
-  return data;
+  try {
+    const { data } = await zammadClient.post("/tickets", payload);
+    return data;
+  } catch (err) {
+    logger.error({
+      status: err.response?.status,
+      zammadError: err.response?.data,
+      payloadKeys: Object.keys(payload),
+      groupId,
+      priorityId,
+    }, "Zammad rejected ticket creation");
+    throw err;
+  }
 }
 
 // ─── Status ───────────────────────────────────────────────────────────────────
@@ -300,12 +350,27 @@ function pickTreeClassificationAttribute(attributes, preferredName) {
 function normalizeFlatSelectOptions(field) {
   const opts = field?.data_option?.options;
   if (!opts || typeof opts !== "object" || Array.isArray(opts)) return [];
-  return Object.entries(opts)
-    .filter(([k]) => k != null && k !== "null")
-    .map(([value, name]) => ({
-      value: String(value),
-      name: name != null ? String(name) : String(value),
-    }));
+
+  const result = [];
+  for (const [key, val] of Object.entries(opts)) {
+    if (key == null || key === "null") continue;
+
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      // Opções aninhadas: { "Categoria": { "subkey": "SubLabel", ... } }
+      // Achatar usando os valores do nível interno
+      for (const [subKey, subVal] of Object.entries(val)) {
+        if (subKey == null || subKey === "null") continue;
+        const name = subVal != null ? String(subVal) : String(subKey);
+        // Zammad desta instância valida pelo display value — usar name como value
+        result.push({ value: name, name });
+      }
+    } else {
+      const name = val != null ? String(val) : String(key);
+      // Usar name (display value) como value — Zammad valida pelo display value
+      result.push({ value: name, name });
+    }
+  }
+  return result;
 }
 
 function buildFieldsClassification(attributes, classificationSteps) {
@@ -328,15 +393,42 @@ function buildFieldsClassification(attributes, classificationSteps) {
       );
     const options = normalizeFlatSelectOptions(attr);
     const display = step.label || attr?.display || step.name;
+    const isSub   = !!(step.when && !step.when.group);
+
+    // Mapa value → priorityId: cruza as opções do Zammad com CATEGORY_MAP/SUBCATEGORY_PRIORITY_MAP
+    // Testa tanto opt.name (label PT-BR) quanto opt.value (key do Zammad) como chave
+    const priorityMap = {};
+    for (const opt of options) {
+      if (isSub) {
+        const p = SUBCATEGORY_PRIORITY_MAP[opt.name] ?? SUBCATEGORY_PRIORITY_MAP[opt.value];
+        if (p != null) priorityMap[opt.value] = p;
+      } else {
+        const entry = CATEGORY_MAP[opt.name] ?? CATEGORY_MAP[opt.value];
+        if (entry) priorityMap[opt.value] = entry.priority;
+      }
+    }
+
     return {
       name: step.name,
       display,
       when: step.when && Object.keys(step.when).length ? step.when : null,
       options,
+      priorityMap,
     };
   });
 
-  return { mode: "fields", steps, field: null, display: null, tree: [] };
+  const categorySteps    = steps.filter(s => !s.when || s.when.group);
+  const subcategorySteps = steps.filter(s => s.when && !s.when.group);
+
+  return {
+    mode: "fields",
+    steps,
+    field: null,
+    display: null,
+    tree: [],
+    categoryFieldNames:    categorySteps.map(s => s.name),
+    subcategoryFieldNames: subcategorySteps.map(s => s.name),
+  };
 }
 
 const AUTO_DISCOVER_EXCLUDED_NAMES = new Set(["group", "priority"]);
@@ -465,18 +557,51 @@ export function classificationAllowlistFromAttributes(attributes, configSteps) {
  * - modo `tree`:   um único tree_select estático (fallback);
  * - modo `none`:   sem classificação carregada.
  */
+
+/**
+ * Busca o ID numérico de um grupo pelo nome.
+ * Usado ao criar tickets para enviar group_id em vez de group (string).
+ */
+export async function getGroupIdByName(name) {
+  if (!name) return undefined;
+  try {
+    const { data } = await zammadClient.get("/groups");
+    const active = data.filter(g => g.active !== false);
+    // Tenta match exato primeiro, depois case-insensitive
+    const exact = active.find(g => g.name === name);
+    if (exact) {
+      logger.info({ name, id: exact.id }, "Resolved group_id (exact)");
+      return exact.id;
+    }
+    const ci = active.find(g => g.name.toLowerCase() === name.toLowerCase());
+    if (ci) {
+      logger.info({ name, id: ci.id, actualName: ci.name }, "Resolved group_id (case-insensitive)");
+      return ci.id;
+    }
+    logger.warn({ name, available: active.map(g => g.name) }, "Group not found by name");
+    return undefined;
+  } catch (err) {
+    logger.error({ error: err.message }, "getGroupIdByName failed");
+    return undefined;
+  }
+}
+
 export async function getTicketFields({
   treeFieldName,
   classificationSteps = [],
 } = {}) {
-  let groups = [];
+  let groups = [];         // [{id, name}] — retornado ao frontend
+  let groupNames = [];     // [string]     — usado internamente pelas funções de classificação
+  let groupNameToId = {};
   try {
     const groupsResponse = await zammadClient.get("/groups");
-    groups = groupsResponse.data
+    const activeGroups = groupsResponse.data
       .filter((g) => g.active === true && g.name !== "Users")
-      .map((g) => g.name)
-      .sort();
-    logger.info({ groups }, "Loaded groups");
+      .sort((a, b) => a.name.localeCompare(b.name));
+    activeGroups.forEach((g) => { groupNameToId[g.name] = g.id; });
+    groups     = activeGroups.map((g) => ({ id: g.id, name: g.name }));
+    groupNames = activeGroups.map((g) => g.name);
+    logger.info({ groups: groupNames }, "Loaded groups");
   } catch (err) {
     logger.error({ error: err.message }, "Error fetching groups");
     return {
@@ -499,7 +624,7 @@ export async function getTicketFields({
     const stepDefs = resolveClassificationStepDefs(
       data,
       classificationSteps,
-      groups,
+      groupNames,  // funções internas precisam de strings, não {id,name}
     );
     if (stepDefs.length > 0) {
       const classification = buildFieldsClassification(data, stepDefs);
@@ -570,8 +695,19 @@ export async function listTicketsByQuery({
   sort_dir = "asc",
   expand = true,
 } = {}) {
-  const { data } = await zammadClient.get("/tickets/search", {
-    params: { query, page, per_page, sort_by, sort_dir, expand },
-  });
-  return data;
+  try {
+    const { data } = await zammadClient.get("/tickets/search", {
+      params: { query, page, per_page, sort_by, sort_dir, expand },
+    });
+    return data;
+  } catch (err) {
+    if (err.response?.status === 400 || err.response?.status === 422 || err.response?.status === 404) {
+      logger.warn({ status: err.response?.status }, "listTicketsByQuery: search unavailable, falling back to GET /tickets");
+      const { data } = await zammadClient.get("/tickets", {
+        params: { page, per_page, expand },
+      });
+      return Array.isArray(data) ? data : [];
+    }
+    throw err;
+  }
 }

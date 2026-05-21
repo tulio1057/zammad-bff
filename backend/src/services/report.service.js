@@ -65,9 +65,10 @@ async function fetchAllTicketsForMonth(year, month) {
 
   let page = 1;
   const perPage = 100;
+  const MAX_PAGES = 10; // SEC-004: limita extração a 1000 tickets por relatório
   const all = [];
 
-  while (true) {
+  while (page <= MAX_PAGES) {
     const params = {
       query,
       page,
@@ -90,6 +91,10 @@ async function fetchAllTicketsForMonth(year, month) {
       logger.error({ error: err.message, page }, 'Error fetching tickets page for report');
       break;
     }
+  }
+
+  if (page > MAX_PAGES) {
+    logger.warn({ year, month, pages: MAX_PAGES }, 'Report reached MAX_PAGES limit — data may be truncated');
   }
 
   return all;

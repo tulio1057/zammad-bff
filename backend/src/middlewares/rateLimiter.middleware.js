@@ -26,3 +26,13 @@ export const forgotLimiter = rateLimit({
   message: { error: 'Too many password reset attempts, please try again in 1 hour.' },
   skipSuccessfulRequests: false,
 });
+
+// SEC-004: rate limit específico para geração de relatórios (operação pesada)
+export const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Limite de geração de relatórios atingido. Tente novamente em 1 hora.' },
+  skipSuccessfulRequests: false,
+});

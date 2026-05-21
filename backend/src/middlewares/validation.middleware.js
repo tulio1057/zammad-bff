@@ -8,12 +8,18 @@ const loginSchema = z.object({
 const createTicketSchema = z.object({
   title:               z.string().min(3).max(200).trim(),
   body:                z.string().min(10).max(10000).trim(),
-  category:            z.string().max(200).trim().optional(),
-  subcategory:         z.string().max(200).trim().optional(),
-  priority:            z.enum(['1', '2', '3']).optional().default('2'),
-  group:               z.string().max(200).trim().optional(),
-  classificationField: z.string().max(120).trim().optional(),
-  classificationValue: z.string().max(300).trim().optional(),
+  // nullable() + optional(): aceita string, null e undefined (null → undefined após transform)
+  category:            z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
+  subcategory:         z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
+  // Aceita número (1,2,3,4) ou string ('1','2','3','4') enviado pelo frontend
+  priority:            z.union([z.number(), z.string()])
+                        .transform((v) => String(v))
+                        .pipe(z.enum(['1', '2', '3', '4']))
+                        .optional()
+                        .default('2'),
+  group:               z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
+  classificationField: z.string().max(120).trim().nullable().optional().transform(v => v ?? undefined),
+  classificationValue: z.string().max(300).trim().nullable().optional().transform(v => v ?? undefined),
   ticketAttributes:    z
     .record(z.string().max(120), z.string().max(400))
     .optional()
