@@ -3,7 +3,7 @@ import { createTicket, fetchFormFields } from '../services/ticket.service.js';
 
 const PRIORITY_LABELS = { 1: '🟢 Baixa', 2: '🟡 Média', 3: '🟠 Alta', 4: '🔴 Crítica' };
 
-// Mapa local espelhado do backend/src/config/categories.js
+// Fallback estático (usado só se o backend não retornar priorityMap nos steps)
 const CATEGORY_PRIORITY_MAP = {
   'Acesso e Identidade': 3, 'Hardware e Equipamentos': 2, 'Rede e Conectividade': 4,
   'Software e Sistemas': 2, 'E-mail e Comunicação': 3, 'Servidores e Infraestrutura': 4,
@@ -15,17 +15,73 @@ const CATEGORY_PRIORITY_MAP = {
   'Operação do Sistema': 4, 'Processos e Configurações': 3, 'Acessos e Usuários': 3,
   'Relatórios e Documentos': 2, 'Integrações': 4, 'Implantação e Melhoria': 1,
 };
-
-const SUBCATEGORY_PRIORITY_MAP = {
+const SUBCATEGORY_PRIORITY_MAP_FB = {
   'Comprometimento de Conta': 4, 'Bloqueio de Conta': 4,
   'Equipamento com Falha Total': 3, 'Sistema Indisponível': 4,
   'Risco de Queda / Estrutura Crítica': 4,
 };
 
-function resolvePriorityFromSelection(category, subcategory) {
-  const base = CATEGORY_PRIORITY_MAP[category] ?? 2;
-  const sub  = subcategory ? (SUBCATEGORY_PRIORITY_MAP[subcategory] ?? null) : null;
-  return sub !== null ? Math.max(base, sub) : base;
+/**
+ * Resolve a prioridade diretamente dos steps retornados pelo backend.
+ * Cada step contém priorityMap: { [optionValue]: priorityId }.
+ * Usa os categoryFieldNames e subcategoryFieldNames para saber quais campos ler.
+ * Aplica sempre a MAIOR prioridade entre categoria e subcategoria.
+ */
+function resolvePriorityFromSteps(attrs, clf) {
+  if (!clf || !attrs) return 2;
+
+  const steps    = clf.steps ?? [];
+  const catNames = clf.categoryFieldNames    ?? [];
+  const subNames = clf.subcategoryFieldNames ?? [];
+
+  let priority = 2; // Média (default)
+
+  for (const fieldName of catNames) {
+    const value = attrs[fieldName];
+    if (!value) continue;
+    const step = steps.find(s => s.name === fieldName);
+    // Tenta priorityMap do backend, depois fallback pelo valor diretamente no mapa estático
+    const p = step?.priorityMap?.[value]
+           ?? CATEGORY_PRIORITY_MAP[value]
+           ?? CATEGORY_PRIORITY_MAP[step?.options?.find(o => o.value === value)?.name];
+    if (p != null) priority = Math.max(priority, p);
+  }
+
+  for (const fieldName of subNames) {
+    const value = attrs[fieldName];
+    if (!value) continue;
+    const step = steps.find(s => s.name === fieldName);
+    const p = step?.priorityMap?.[value]
+           ?? SUBCATEGORY_PRIORITY_MAP_FB[value]
+           ?? SUBCATEGORY_PRIORITY_MAP_FB[step?.options?.find(o => o.value === value)?.name];
+    if (p != null) priority = Math.max(priority, p);
+  }
+
+  // Fallback: quando clf não tem categoryFieldNames (modo tree ou nenhum step),
+  // tenta todos os campos de ticketAttributes no mapa estático
+  if (catNames.length === 0) {
+    for (const v of Object.values(attrs)) {
+      const p = CATEGORY_PRIORITY_MAP[v];
+      if (p != null) priority = Math.max(priority, p);
+    }
+  }
+
+  return priority;
+}
+
+function resolveCategoryFromAttributes(attrs, clf) {
+  const catFields = clf?.categoryFieldNames?.length
+    ? clf.categoryFieldNames
+    : ['categorias_all', 'category', 'ticket_category'];
+  const subFields = clf?.subcategoryFieldNames?.length
+    ? clf.subcategoryFieldNames
+    : ['erp_subcategoria', 'subcategoryti', 'sub_categoria_gestao_celulares_corporativos', 'sub_categoria_predial', 'subcategoria'];
+
+  const category    = catFields.map(f => attrs?.[f]).find(v => v) || null;
+  const subcategory = category
+    ? (subFields.map(f => attrs?.[f]).find(v => v) || null)
+    : null;
+  return { category, subcategory };
 }
 
 function classificationLevels(tree, path) {
@@ -185,19 +241,14 @@ export default function CreateTicketModal({ onClose, onCreated }) {
         : undefined;
 
     try {
-      const category    = form.ticketAttributes?.categorias_all ?? null;
-      const subcategory = category
-        ? (form.ticketAttributes?.erp_subcategoria
-          ?? form.ticketAttributes?.subcategoryti
-          ?? form.ticketAttributes?.sub_categoria_gestao_celulares_corporativos
-          ?? form.ticketAttributes?.sub_categoria_predial
-          ?? null)
-        : null;
+      const { category, subcategory } = resolveCategoryFromAttributes(form.ticketAttributes, formFields.classification);
+      const priority = resolvePriorityFromSteps(form.ticketAttributes, formFields.classification);
 
       await createTicket(form.title, form.body, {
         group: form.group,
         category,
         subcategory,
+        priority,  // prioridade resolvida dinamicamente pelos steps
         ...(mode === 'fields' && Object.keys(form.ticketAttributes).length > 0
           ? { ticketAttributes: form.ticketAttributes }
           : {}),
@@ -210,7 +261,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
       });
       onCreated();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao criar chamado');
+      setError(err.response?.data?.error || err.message || 'Erro ao criar chamado. Verifique os campos e tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -291,9 +342,10 @@ export default function CreateTicketModal({ onClose, onCreated }) {
             disabled={submitting}
           >
             <option value="">Selecione um grupo...</option>
-            {formFields.groups && formFields.groups.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
+            {formFields.groups && formFields.groups.map((g) => {
+              const name = typeof g === 'object' ? g.name : g;
+              return <option key={name} value={name}>{name}</option>;
+            })}
           </select>
         </>
       );
@@ -347,15 +399,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
             </div>
             <div className="field">
               {(() => {
-                const cat = form.ticketAttributes?.categorias_all ?? null;
-                const sub = cat
-                  ? (form.ticketAttributes?.erp_subcategoria
-                    ?? form.ticketAttributes?.subcategoryti
-                    ?? form.ticketAttributes?.sub_categoria_gestao_celulares_corporativos
-                    ?? form.ticketAttributes?.sub_categoria_predial
-                    ?? null)
-                  : null;
-                const p = resolvePriorityFromSelection(cat, sub);
+                const p = resolvePriorityFromSteps(form.ticketAttributes, formFields.classification);
                 return (
                   <>
                     <label>Prioridade</label>

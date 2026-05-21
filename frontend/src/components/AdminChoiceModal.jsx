@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 /**
  * Modal exibido para admins logo após o login.
  * Props:
- *   zammadUrl  – URL do Zammad para redirecionar ao painel tradicional
+ *   zammadUrl   – URL do Zammad (opcional — botão oculto se ausente)
  *   onDashboard – callback quando o admin escolhe o dashboard interno
  */
 export default function AdminChoiceModal({ zammadUrl, onDashboard }) {
@@ -70,29 +70,31 @@ export default function AdminChoiceModal({ zammadUrl, onDashboard }) {
             </svg>
           </button>
 
-          {/* Opção 2 — Painel Zammad */}
-          <button
-            className="adm-card adm-card--secondary"
-            onClick={() => { window.location.href = zammadUrl; }}
-          >
-            <div className="adm-card-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="1.8"
-                  strokeLinecap="round" />
+          {/* Opção 2 — Painel Zammad (só exibido quando a URL estiver disponível) */}
+          {zammadUrl && (
+            <button
+              className="adm-card adm-card--secondary"
+              onClick={() => { window.location.href = zammadUrl; }}
+            >
+              <div className="adm-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="1.8"
+                    strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="adm-card-body">
+                <span className="adm-card-label">Painel Zammad</span>
+                <span className="adm-card-sub">
+                  Gerenciar tickets, usuários e configurações do sistema
+                </span>
+              </div>
+              <svg className="adm-card-arrow" width="20" height="20" viewBox="0 0 24 24"
+                fill="none" aria-hidden="true">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </div>
-            <div className="adm-card-body">
-              <span className="adm-card-label">Painel Zammad</span>
-              <span className="adm-card-sub">
-                Gerenciar tickets, usuários e configurações do sistema
-              </span>
-            </div>
-            <svg className="adm-card-arrow" width="20" height="20" viewBox="0 0 24 24"
-              fill="none" aria-hidden="true">
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+            </button>
+          )}
         </div>
 
         <p className="adm-hint">Pressione <kbd>Esc</kbd> para ir ao dashboard</p>

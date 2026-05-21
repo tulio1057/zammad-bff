@@ -3,9 +3,33 @@ import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
 import { authenticateUser } from './zammad.service.js';
 import { logger } from '../config/logger.js';
+import { db } from '../db/database.js';
 
-// In-memory refresh token store (use Redis in production)
-const refreshTokenStore = new Map();
+// ─── Refresh token TTL: 1 dia ────────────────────────────────────────────────
+const REFRESH_TOKEN_TTL_MS = 1 * 24 * 60 * 60 * 1000; // 1 dia em ms
+
+// ─── Helpers SQLite ───────────────────────────────────────────────────────────
+
+function storeRefreshToken(token, data) {
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO refresh_tokens (token, user_id, email, name, role, zammad_id, created_at, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(token, String(data.userId), data.email, data.name, data.role, String(data.zammadId), now, now + REFRESH_TOKEN_TTL_MS);
+}
+
+function getStoredToken(token) {
+  return db.prepare('SELECT * FROM refresh_tokens WHERE token = ?').get(token) ?? null;
+}
+
+function deleteRefreshToken(token) {
+  db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(token);
+}
+
+/** Remove tokens expirados (chamado em operações de token para manutenção passiva) */
+function purgeExpiredTokens() {
+  db.prepare('DELETE FROM refresh_tokens WHERE expires_at < ?').run(Date.now());
+}
 
 export async function loginUser(email, password) {
   const zammadUser = await authenticateUser(email, password);
@@ -29,34 +53,39 @@ export async function loginUser(email, password) {
   });
 
   const refreshToken = uuidv4();
-  refreshTokenStore.set(refreshToken, {
+  storeRefreshToken(refreshToken, {
     userId: zammadUser.id,
     email: zammadUser.email,
     name: `${zammadUser.firstname} ${zammadUser.lastname}`,
     role,
     zammadId: zammadUser.id,
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
+
+  // Limpeza passiva de tokens antigos do mesmo usuário e de expirados globais
+  db.prepare('DELETE FROM refresh_tokens WHERE user_id = ? AND token != ? AND expires_at < ?')
+    .run(String(zammadUser.id), refreshToken, Date.now());
+  purgeExpiredTokens();
 
   logger.info({ userId: zammadUser.id, role: payload.role }, 'User logged in');
 
   return { accessToken, refreshToken, isAdmin: role === 'admin', user: payload };
 }
 
-export async function refreshAccessToken(refreshToken) {
-  const stored = refreshTokenStore.get(refreshToken);
+export async function refreshAccessToken(oldRefreshToken) {
+  const stored = getStoredToken(oldRefreshToken);
 
-  if (!stored || stored.expiresAt < Date.now()) {
-    refreshTokenStore.delete(refreshToken);
+  if (!stored || stored.expires_at < Date.now()) {
+    if (stored) deleteRefreshToken(oldRefreshToken);
+    logger.warn({ token: oldRefreshToken?.slice(0, 8) }, 'Invalid or expired refresh token attempt');
     throw new Error('Invalid or expired refresh token');
   }
 
   const payload = {
-    sub: stored.userId,
+    sub: stored.user_id,
     email: stored.email,
     name: stored.name,
     role: stored.role,
-    zammadId: stored.zammadId,
+    zammadId: stored.zammad_id,
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
@@ -64,11 +93,22 @@ export async function refreshAccessToken(refreshToken) {
     issuer: 'zammad-bff',
   });
 
-  return { accessToken };
+  // Rotação: invalida o token antigo e emite um novo com TTL de 1 dia
+  deleteRefreshToken(oldRefreshToken);
+  const newRefreshToken = uuidv4();
+  storeRefreshToken(newRefreshToken, {
+    userId: stored.user_id,
+    email: stored.email,
+    name: stored.name,
+    role: stored.role,
+    zammadId: stored.zammad_id,
+  });
+
+  return { accessToken, newRefreshToken };
 }
 
 export function revokeRefreshToken(refreshToken) {
-  refreshTokenStore.delete(refreshToken);
+  deleteRefreshToken(refreshToken);
 }
 
 export function verifyAccessToken(token) {

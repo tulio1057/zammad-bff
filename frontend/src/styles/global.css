@@ -36,6 +36,10 @@
 }
 
 [data-theme="dark"] {
+  --blue:        #4da6ff;
+  --blue-dark:   #7ec8ff;
+  --blue-light:  #66b3ff;
+  --blue-lighter: #1a2d4a;
   --gray-100:    #0f172a;
   --gray-200:    #1e293b;
   --gray-400:    #64748b;
@@ -55,6 +59,57 @@
   --toggle-bg:   rgba(255,255,255,0.08);
   --toggle-color: #94a3b8;
 }
+
+/* Dark mode: inputs, selects e textareas */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Dark mode: modais e overlays */
+[data-theme="dark"] .modal-overlay,
+[data-theme="dark"] .adm-overlay {
+  background: rgba(0,0,0,0.7);
+}
+
+[data-theme="dark"] .modal,
+[data-theme="dark"] .adm-modal,
+[data-theme="dark"] .ticket-drawer {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* Dark mode: cards e tabelas */
+[data-theme="dark"] .card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .ticket-row {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .ticket-row:hover {
+  background: #263548;
+}
+
+/* Dark mode: labels e textos secundários */
+[data-theme="dark"] label {
+  color: var(--text-secondary);
+}
+
+/* Dark mode: badges de prioridade */
+[data-theme="dark"] .badge-priority-media  { background: #78350f22; color: #fbbf24; }
+[data-theme="dark"] .badge-priority-alta   { background: #92400e22; color: #f97316; }
+[data-theme="dark"] .badge-priority-critica{ background: #7f1d1d22; color: #f87171; }
+[data-theme="dark"] .badge-priority-baixa  { background: #14532d22; color: #4ade80; }
 
 /* Theme Toggle Button */
 .theme-toggle {

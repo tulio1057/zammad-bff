@@ -72,7 +72,7 @@ export default function TechDashboardPage() {
 
   useEffect(() => {
     fetchFormFields()
-      .then(data => setGroups(data.groups || []))
+      .then(data => setGroups((data.groups || []).map(g => typeof g === 'object' ? g.name : g)))
       .catch(() => { });
   }, []);
 
