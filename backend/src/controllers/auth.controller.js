@@ -1,6 +1,8 @@
 import * as authService from '../services/auth.service.js';
+import * as microsoftService from '../services/microsoft.service.js';
 import { setAuthCookies, clearAuthCookies } from '../utils/cookies.js';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 
 export async function forgotPassword(req, res, next) {
   try {
@@ -71,4 +73,36 @@ export function me(req, res) {
     name: req.user.name,
     role: req.user.role,
   });
+}
+
+export async function microsoftAuthUrl(req, res, next) {
+  try {
+    const authUrl = await microsoftService.getAuthorizationUrl();
+    res.json({ authUrl });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function microsoftCallback(req, res, next) {
+  try {
+    const { code } = req.query;
+    if (!code) return res.status(400).json({ error: 'No authorization code' });
+
+    const tokenResponse = await microsoftService.getAccessTokenFromCode(code);
+    const microsoftUser = await microsoftService.getMicrosoftUser(tokenResponse.access_token);
+
+    const { accessToken, refreshToken, isAdmin, user } = await authService.loginWithMicrosoft(
+      microsoftUser.mail
+    );
+
+    setAuthCookies(res, { accessToken, refreshToken });
+
+    // Redirecionar para frontend com token no hash para evitar expor em logs
+    const redirectUrl = `${env.FRONTEND_URL}/auth-success#token=${accessToken}`;
+    res.redirect(redirectUrl);
+  } catch (err) {
+    logger.error({ error: err.message }, 'Microsoft callback error');
+    res.redirect(`${env.FRONTEND_URL}/login?error=microsoft_auth_failed`);
+  }
 }
