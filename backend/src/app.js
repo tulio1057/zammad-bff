@@ -52,12 +52,12 @@ app.use(cookieParser());
 app.use(globalLimiter);
 
 // Routes
-app.use('/api/auth',         authRoutes);
+app.use(['/api/auth', '/auth'], authRoutes);
 app.use('/api/tickets',      ticketRoutes);
 app.use('/api/tech',         technicianRoutes);
 app.use('/api/tech/notices', noticeRoutes);
-app.use('/api/setup',       setupRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/setup',        setupRoutes);
+app.use('/api/admin',        adminRoutes);
 
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok' }));

@@ -88,3 +88,48 @@ export async function forgotPassword(email) {
   }
   // Always succeed — never reveal if email exists
 }
+
+export async function loginWithMicrosoft(email) {
+  const { getUserByEmail } = await import('./zammad.service.js');
+  
+  // Buscar usuário no Zammad pelo email
+  const zammadUser = await getUserByEmail(email);
+  
+  if (!zammadUser) {
+    throw new Error('User not found in Zammad. Please contact an administrator.');
+  }
+
+  const isAdmin = zammadUser.role_ids?.includes(1) || zammadUser.roles?.includes('Admin');
+  const isAgent = zammadUser.role_ids?.includes(2) || zammadUser.roles?.includes('Agent');
+
+  const role = isAdmin ? 'admin' : isAgent ? 'technician' : 'user';
+
+  const payload = {
+    sub: zammadUser.id,
+    email: zammadUser.email,
+    name: `${zammadUser.firstname} ${zammadUser.lastname}`,
+    role,
+    zammadId: zammadUser.id,
+    authProvider: 'microsoft',
+  };
+
+  const accessToken = jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN,
+    issuer: 'zammad-bff',
+  });
+
+  const refreshToken = uuidv4();
+  refreshTokenStore.set(refreshToken, {
+    userId: zammadUser.id,
+    email: zammadUser.email,
+    name: `${zammadUser.firstname} ${zammadUser.lastname}`,
+    role,
+    zammadId: zammadUser.id,
+    authProvider: 'microsoft',
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+
+  logger.info({ userId: zammadUser.id, role: payload.role, provider: 'microsoft' }, 'User logged in via Microsoft');
+
+  return { accessToken, refreshToken, isAdmin: role === 'admin', user: payload };
+}

@@ -3,6 +3,7 @@ import { AuthProvider } from '../context/AuthContext.jsx';
 import { ThemeProvider } from '../context/ThemeContext.jsx';
 import { ProtectedRoute } from './ProtectedRoute.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
+import AuthCallbackPage from '../pages/AuthCallbackPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import TicketDetailPage from '../pages/TicketDetailPage.jsx';
 import TechDashboardPage from '../pages/TechDashboardPage.jsx';
@@ -17,6 +18,7 @@ export default function AppRouter() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth-callback" element={<AuthCallbackPage />} />
 
             {/* Rotas de usuário comum */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
