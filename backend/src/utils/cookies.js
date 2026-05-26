@@ -16,13 +16,12 @@ export function setAuthCookies(res, { accessToken, refreshToken }) {
 
   res.cookie('refresh_token', refreshToken, {
     ...cookieOptions,
-    maxAge: 1 * 24 * 60 * 60 * 1000, // 1 dia
-    // Sem path restrito: httpOnly + sameSite já impedem uso indevido.
-    // Path restrito causava o browser não enviar o cookie ao proxy do Vite.
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
+    path: '/api/auth/refresh',
   });
 }
 
 export function clearAuthCookies(res) {
   res.clearCookie('access_token', cookieOptions);
-  res.clearCookie('refresh_token', cookieOptions);
+  res.clearCookie('refresh_token', { ...cookieOptions, path: '/api/auth/refresh' });
 }

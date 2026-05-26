@@ -12,7 +12,7 @@ import AdminReportPage from '../pages/AdminReportPage.jsx';
 
 export default function AppRouter() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
           <Routes>

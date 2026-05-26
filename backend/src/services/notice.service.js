@@ -1,4 +1,3 @@
-import xss from 'xss';
 import * as noticeRepo from '../repositories/notice.repository.js';
 import { logger } from '../config/logger.js';
 
@@ -18,13 +17,9 @@ export function createNotice(title, message, user) {
     throw new Error('Apenas técnicos podem criar avisos');
   }
 
-  // SEC-008: sanitizar conteúdo para prevenir XSS
-  const safeTitle   = title?.trim()   ? xss(title.trim())   : null;
-  const safeMessage = xss(message.trim());
-
   const notice = noticeRepo.createNotice(
-    safeTitle,
-    safeMessage,
+    title?.trim() || null,
+    message.trim(),
     user.sub,
     user.name
   );

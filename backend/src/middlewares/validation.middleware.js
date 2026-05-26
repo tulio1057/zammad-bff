@@ -8,20 +8,19 @@ const loginSchema = z.object({
 const createTicketSchema = z.object({
   title:               z.string().min(3).max(200).trim(),
   body:                z.string().min(10).max(10000).trim(),
-  // nullable() + optional(): aceita string, null e undefined (null → undefined após transform)
-  category:            z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
-  subcategory:         z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
-  // Aceita número (1,2,3,4) ou string ('1','2','3','4') enviado pelo frontend
-  priority:            z.union([z.number(), z.string()])
-                        .transform((v) => String(v))
-                        .pipe(z.enum(['1', '2', '3', '4']))
-                        .optional()
-                        .default('2'),
-  group:               z.string().max(200).trim().nullable().optional().transform(v => v ?? undefined),
-  classificationField: z.string().max(120).trim().nullable().optional().transform(v => v ?? undefined),
-  classificationValue: z.string().max(300).trim().nullable().optional().transform(v => v ?? undefined),
+  category:            z.string().max(200).trim().nullish(),
+  subcategory:         z.string().max(200).trim().nullish(),
+  priority:            z.enum(['1', '2', '3', '4']).optional().default('2'),
+  group:               z.string().max(200).trim().nullish(),
+  classificationField: z.string().max(120).trim().nullish(),
+  classificationValue: z.string().max(300).trim().nullish(),
   ticketAttributes:    z
-    .record(z.string().max(120), z.string().max(400))
+    .record(
+      z.string().max(120),
+      z.union([z.string(), z.number(), z.null()])
+        .transform((v) => (v == null ? '' : String(v)))
+        .pipe(z.string().max(400))
+    )
     .optional()
     .refine((r) => !r || Object.keys(r).length <= 30, 'Muitos atributos'),
 });

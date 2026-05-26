@@ -61,15 +61,22 @@ export const CATEGORY_MAP = {
  * Apenas subcategorias que elevam ou reduzem a prioridade padrão precisam ser listadas.
  */
 export const SUBCATEGORY_PRIORITY_MAP = {
-  // TI — Acesso e Identidade
-  'Comprometimento de Conta':          PRIORITY.CRITICO,
-  'Bloqueio de Conta':                 PRIORITY.CRITICO,
-  // TI — Hardware e Equipamentos
-  'Equipamento com Falha Total':       PRIORITY.ALTO,
-  // TI — Software e Sistemas
-  'Sistema Indisponível':              PRIORITY.CRITICO,
-  // Manutenção Predial — Estrutura e Outros
-  'Risco de Queda / Estrutura Crítica': PRIORITY.CRITICO,
+  // TI — Acesso e Identidade (subcategoryti)
+  'Conta comprometida':                PRIORITY.CRITICO,  // conta_comprometida
+  'Bloqueio de Conta':                 PRIORITY.CRITICO,  // bloqueio_conta
+  'Acesso indevido':                   PRIORITY.CRITICO,  // acesso_indevido
+  'Phishing confirmado':               PRIORITY.CRITICO,  // phishing_confirmado
+  'Vazamento de dados':                PRIORITY.CRITICO,  // vazamento_dados
+  'Vírus / Malware':                   PRIORITY.CRITICO,  // virus_malware
+  'Servidor fora':                     PRIORITY.CRITICO,  // servidor_fora
+  'VPN Fora':                          PRIORITY.CRITICO,  // vpn_fora
+  'Sem Internet':                      PRIORITY.CRITICO,  // sem_internet
+  // ERP — subcategoria (erp_subcategoria)
+  'Erro ao executar rotina':           PRIORITY.CRITICO,  // erro_rotina
+  'Tela não carrega':                  PRIORITY.CRITICO,  // tela_nao_carrega
+  'Sistema lento / travado':           PRIORITY.ALTO,     // sistema_lento
+  'Integração bancária':               PRIORITY.ALTO,     // integ_bancaria
+  'Integração fiscal (SEFAZ)':         PRIORITY.ALTO,     // integ_sefaz
 };
 
 /**

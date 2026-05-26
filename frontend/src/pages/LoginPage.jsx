@@ -31,9 +31,9 @@ export default function LoginPage() {
     try {
       const data = await login(form.email, form.password);
 
-      if (data.isAdmin) {
+      if (data.isAdmin && data.zammadUrl) {
         // Admin: exibe o modal de escolha em vez de redirecionar direto
-        setAdminChoice({ userData: data.user });
+        setAdminChoice({ zammadUrl: data.zammadUrl, userData: data.user });
         return;
       }
 
