@@ -13,6 +13,10 @@ const envSchema = z.object({
   ZAMMAD_TICKET_TREE_CLASSIFICATION_FIELD: z.string().max(120).optional(),
   /** Caminho para JSON de passos (vários selects); ver ticket-classification.example.json */
   ZAMMAD_TICKET_CLASSIFICATION_CONFIG_PATH: z.string().max(500).optional(),
+  /** Microsoft 365 OAuth */
+  MICROSOFT_CLIENT_ID: z.string().optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  MICROSOFT_REDIRECT_URI: z.string().url().optional(),
 });
 
 export const env = envSchema.parse(process.env);

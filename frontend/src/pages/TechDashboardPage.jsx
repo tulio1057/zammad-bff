@@ -30,7 +30,7 @@ const STATUS_LABELS = {
   fechado: 'Fechado',
 };
 
-const PRIO_LABELS = { 1: '🟢 Baixa', 2: '🟡 Média', 3: '🟠 Alta', 4: '🔴 Crítico' };
+const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta', 4: 'Crítico' };
 const PRIO_CLASS = { 1: 'prio prio-1', 2: 'prio prio-2', 3: 'prio prio-3', 4: 'prio prio-4' };
 
 //cd ban Cores para os cabeçalhos de prioridade
