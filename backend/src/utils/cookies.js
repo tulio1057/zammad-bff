@@ -1,11 +1,13 @@
 import { env } from '../config/env.js';
-const isProd = env.NODE_ENV === 'production';
+
+// Força a detecção de produção ou checa se a URL não é localhost
+const isProd = env.NODE_ENV === 'production' || !env.FRONTEND_URL.includes('localhost');
 
 export const cookieOptions = {
   httpOnly: true,
-  secure: isProd,
+  secure: isProd,                 // Será true na nuvem
   sameSite: isProd ? 'none' : 'lax', 
-  path: '/',
+  path: '/',                      // Deixe '/' visível para todo o app evitar erros de rota
 };
 
 export function setAuthCookies(res, { accessToken, refreshToken }) {
@@ -17,11 +19,11 @@ export function setAuthCookies(res, { accessToken, refreshToken }) {
   res.cookie('refresh_token', refreshToken, {
     ...cookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
-    path: '/api/auth/refresh',
+    // REMOVIDO o path restrito para evitar o bloqueio de cookies nas rotas do BFF
   });
 }
 
 export function clearAuthCookies(res) {
   res.clearCookie('access_token', cookieOptions);
-  res.clearCookie('refresh_token', { ...cookieOptions, path: '/api/auth/refresh' });
+  res.clearCookie('refresh_token', cookieOptions);
 }
