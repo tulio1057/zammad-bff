@@ -1,0 +1,36 @@
+/* ============================================================
+   ENTREGÁVEL 10 — Modificações em frontend/src/styles/admin.css
+   Instruções de aplicação:
+     F4: Localizar .ar-kpi-grid e substituir a regra completa pelo bloco abaixo.
+     F2: Localizar .ar-chart-card e adicionar min-width: 0; à declaração existente.
+   ============================================================ */
+
+
+/* ── F4: KPI grid 4×2 (substituir .ar-kpi-grid existente) ─────────────────── */
+
+.ar-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* desktop: 4 colunas fixas */
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .ar-kpi-grid {
+    grid-template-columns: repeat(2, 1fr); /* tablet: 2 colunas */
+  }
+}
+
+@media (max-width: 480px) {
+  .ar-kpi-grid {
+    grid-template-columns: 1fr; /* mobile: 1 coluna */
+  }
+}
+
+
+/* ── F2: Fix overflow em chart cards (adicionar a .ar-chart-card existente) ── */
+/* Adicione min-width: 0; dentro da regra .ar-chart-card já existente no arquivo */
+
+.ar-chart-card {
+  min-width: 0; /* previne overflow em contexto flex */
+}

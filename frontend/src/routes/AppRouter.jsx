@@ -8,7 +8,6 @@ import DashboardPage from '../pages/DashboardPage.jsx';
 import TicketDetailPage from '../pages/TicketDetailPage.jsx';
 import TechDashboardPage from '../pages/TechDashboardPage.jsx';
 import TechTicketDetailPage from '../pages/TechTicketDetailPage.jsx';
-import NoticesPage from '../pages/NoticesPage.jsx';
 import AdminReportPage from '../pages/AdminReportPage.jsx';
 
 export default function AppRouter() {

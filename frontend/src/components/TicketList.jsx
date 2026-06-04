@@ -6,9 +6,9 @@ const STATUS_LABELS = { 1: 'Novo', 2: 'Aberto', 3: 'Pendente', 4: 'Fechado', 6: 
 // Status aberto = menor número = aparece primeiro
 const STATUS_ORDER = { 1: 0, 2: 1, 3: 2, 6: 3, 4: 4 };
 
-// priority_id do Zammad: 1=baixa, 2=normal, 3=alta
-const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta' };
-const PRIO_CLASS  = { 1: 'prio prio-low', 2: 'prio prio-med', 3: 'prio prio-high' };
+// priority_id do Zammad: 1=baixa, 2=normal, 3=alta, 4=crítica
+const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta', 4: 'Crítica' };
+const PRIO_CLASS  = { 1: 'prio prio-low', 2: 'prio prio-med', 3: 'prio prio-high', 4: 'prio prio-critical' };
 const STATUS_FILTERS = [
   { value: 'all', label: 'Todos' },
   { value: 'open', label: 'Em andamento' },
@@ -184,9 +184,9 @@ export default function TicketList({ tickets, loading, onSelect, onPrev, onNext,
                   )}
                 </td>
                 <td>
-                  <span className={PRIO_CLASS[prioId] ?? 'prio prio-med'}>
+                  <span className={PRIO_CLASS[prioId] ?? 'prio prio-unknown'}>
                     <span className="prio-dot" />
-                    {PRIO_LABELS[prioId] ?? 'Média'}
+                    {PRIO_LABELS[prioId] ?? `Prioridade ${prioId}`}
                   </span>
                 </td>
                 <td>

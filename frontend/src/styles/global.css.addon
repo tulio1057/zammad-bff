@@ -1,0 +1,111 @@
+/* ============================================================
+   ENTREGÁVEL 9 — Adições/substituições em frontend/src/styles/global.css
+   Instruções de aplicação:
+     F3: Localizar as classes abaixo e substituir os valores indicados.
+     F1+F2: Colar o bloco "NOVAS CLASSES" ao final da seção lp-*.
+   ============================================================ */
+
+
+/* ── F3: Fontes maiores na Login Page ────────────────────────
+   Substituir os valores nas classes existentes conforme abaixo:
+   ------------------------------------------------------------ */
+
+/* .lp-label — alterar font-size de 11px para 13px e letter-spacing de 1px para 0.8px */
+.lp-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #1a2a4a;
+}
+
+/* .lp-input — alterar height de 50px para 52px e font-size de 14px para 15px */
+.lp-input {
+  height: 52px;
+  font-size: 15px;
+}
+
+/* .lp-alert — alterar font-size de 13px para 14px */
+.lp-alert {
+  font-size: 14px;
+}
+
+/* .lp-btn-ghost-link — alterar font-size de 14px para 15px e height de 48px para 50px */
+.lp-btn-ghost-link {
+  font-size: 15px;
+  height: 50px;
+}
+
+
+/* ── F1 + F2: Novas classes (adicionar ao final da seção lp-*) ─────────────── */
+
+/* Separador "ou" entre formulário e botão Microsoft */
+.lp-divider-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 12px 0 10px;
+  color: #8fa8c8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lp-divider-or::before,
+.lp-divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #d6e4f0;
+}
+
+/* Botão Microsoft 365 */
+.lp-btn-ms {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 50px;
+  padding: 0 20px;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border: 1.5px solid #d0d8e8;
+  border-radius: 10px;
+  color: #1a2a4a;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lp-btn-ms:hover:not(:disabled) {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.lp-btn-ms:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Dark mode */
+[data-theme="dark"] .lp-btn-ms {
+  background: #1e2d45;
+  border-color: #2d4060;
+  color: #c8d8eb;
+}
+
+[data-theme="dark"] .lp-btn-ms:hover:not(:disabled) {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.15);
+}
+
+[data-theme="dark"] .lp-divider-or {
+  color: #5a7a9a;
+}
+
+[data-theme="dark"] .lp-divider-or::before,
+[data-theme="dark"] .lp-divider-or::after {
+  background: #2d4060;
+}

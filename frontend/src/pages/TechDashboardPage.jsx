@@ -5,7 +5,6 @@ import { fetchTechTickets, assignTicket } from '../services/technician.service.j
 import { fetchFormFields } from '../services/ticket.service.js';
 import SerGasLogo from '../components/SerGasLogo.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
-import NoticesHighlight from '../components/NoticesHighlight.jsx';
 import TicketDrawer from '../components/TicketDrawer.jsx';
 
 const STATUS_TABS = [
@@ -55,6 +54,8 @@ function effectiveGroup(t) {
 export default function TechDashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Estado de dados completos
   const [allTickets, setAllTickets] = useState([]);
@@ -281,6 +282,12 @@ export default function TechDashboardPage() {
     <div className="layout">
       <header className="header">
         <div className="header-brand">
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(v => !v)} aria-label="Menu">
+            {sidebarOpen
+              ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            }
+          </button>
           <SerGasLogo size="sm" />
           <div className="brand-text">
             <strong>SERGAS</strong>
@@ -294,20 +301,19 @@ export default function TechDashboardPage() {
           </div>
           <div className="user-avatar">{getInitials(user?.name)}</div>
           <ThemeToggle />
-          <button className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '6px 12px', fontSize: 11, marginLeft: 8, border: '1px solid rgba(255,255,255,0.2)' }} onClick={handleLogout}>
-            Sair
-          </button>
+          <button className="btn btn-ghost header-logout-btn" onClick={handleLogout}>Sair</button>
         </div>
       </header>
 
       <div className="layout-body">
-        <nav className="sidebar">
+        <div className={`sidebar-overlay${sidebarOpen ? ' open' : ''}`} onClick={() => setSidebarOpen(false)} />
+
+        <nav className={`sidebar${sidebarOpen ? ' open' : ''}`}>
           <div className="nav-section-label">Operacional</div>
           <a className="nav-item active" style={{ cursor: 'pointer' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
             Fila de Chamados
           </a>
-
           <div className="nav-section-label" style={{ marginTop: 20 }}>Filtros Rápidos</div>
           <label className="nav-item" style={{ cursor: 'pointer', userSelect: 'none' }}>
             <input type="checkbox" checked={myOnly} onChange={e => setMyOnly(e.target.checked)} style={{ marginRight: 10, accentColor: 'var(--orange)' }} />
@@ -316,8 +322,6 @@ export default function TechDashboardPage() {
         </nav>
 
         <main className="main">
-          <NoticesHighlight />
-
           <div className="page-title">
             <div>
               <h2>Fila de Atendimento</h2>
