@@ -1,7 +1,7 @@
 import { loadTicketClassificationConfig } from '../config/ticket-classification.js';
 import { env } from '../config/env.js';
 import * as zammadService from './zammad.service.js';
-import { resolveCategory, PRIORITY } from '../config/categories.js';
+import { resolveCategory, PRIORITY, FORM_CATALOG, SUBCATEGORIES } from '../config/categories.js';
 import { logger } from '../config/logger.js';
 
 export async function getTickets({ user, page, perPage }) {
@@ -167,9 +167,15 @@ export async function createNewTicket({
 }
 
 export async function getFormFields() {
-  const { steps } = loadTicketClassificationConfig();
-  return zammadService.getTicketFields({
-    treeFieldName:       env.ZAMMAD_TICKET_TREE_CLASSIFICATION_FIELD,
-    classificationSteps: steps,
-  });
+  // Retorna catálogo estático — grupos, categorias e subcategorias definidos localmente
+  const catalog = FORM_CATALOG.map((group) => ({
+    name: group.name,
+    categories: group.categories.map((cat) => ({
+      name: cat,
+      subcategories: SUBCATEGORIES[cat] ?? [],
+      priority: resolveCategory(cat).priorityId,
+    })),
+  }));
+
+  return { catalog };
 }

@@ -8,7 +8,6 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import ticketRoutes from './routes/ticket.routes.js';
 import technicianRoutes from './routes/technician.routes.js';
-import noticeRoutes from './routes/notice.routes.js';
 import setupRoutes from './routes/setup.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
@@ -55,7 +54,6 @@ app.use(globalLimiter);
 app.use('/api/auth',         authRoutes);
 app.use('/api/tickets',      ticketRoutes);
 app.use('/api/tech',         technicianRoutes);
-app.use('/api/tech/notices', noticeRoutes);
 app.use('/api/setup',       setupRoutes);
 app.use('/api/admin', adminRoutes);
 

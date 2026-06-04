@@ -8,8 +8,8 @@ const loginSchema = z.object({
 const createTicketSchema = z.object({
   title:               z.string().min(3).max(200).trim(),
   body:                z.string().min(10).max(10000).trim(),
-  category:            z.string().max(200).trim().nullish(),
-  subcategory:         z.string().max(200).trim().nullish(),
+  category:            z.string().max(200).trim().nullish().transform(v => v ?? undefined),
+  subcategory:         z.string().max(200).trim().nullish().transform(v => v ?? undefined),
   priority:            z.enum(['1', '2', '3', '4']).optional().default('2'),
   group:               z.string().max(200).trim().nullish(),
   classificationField: z.string().max(120).trim().nullish(),
@@ -33,11 +33,6 @@ const addUpdateSchema = z.object({
   message: z.string().min(3).max(5000).trim(),
 });
 
-const createNoticeSchema = z.object({
-  title:   z.string().max(200).trim().optional(),
-  message: z.string().min(1).max(5000).trim(),
-});
-
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -56,8 +51,6 @@ export const validateLogin          = validate(loginSchema);
 export const validateCreateTicket   = validate(createTicketSchema);
 export const validateChangeStatus   = validate(changeStatusSchema);
 export const validateAddUpdate      = validate(addUpdateSchema);
-
-export const validateCreateNotice   = validate(createNoticeSchema);
 
 const forgotPasswordSchema = z.object({
   email: z.string().email().max(254),

@@ -1666,3 +1666,228 @@ body {
   .lp-feature { flex: 1 1 100%; }
   .lp-right { padding: 1.5rem 1rem; }
 }
+
+/* ════════════════════════════════════════════════════════
+   RESPONSIVIDADE — Layout principal, sidebar, tabelas,
+   formulários e modal
+   ════════════════════════════════════════════════════════ */
+
+/* Por padrão (desktop) o botão hambúrguer fica oculto */
+.hamburger-btn { display: none; }
+
+/* ── Tablet (≤ 900px) — sidebar colapsada, layout ajustado ── */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 150;
+    width: 260px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 24px 20px;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 140;
+  }
+
+  .sidebar-overlay.open { display: block; }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    width: 38px;
+    height: 38px;
+    cursor: pointer;
+    margin-right: 8px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .hamburger-btn:hover { background: rgba(255,255,255,0.22); }
+
+  .user-name { display: none; }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .dashboard-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ticket-table th:nth-child(4),
+  .ticket-table td:nth-child(4),
+  .ticket-table th:nth-child(5),
+  .ticket-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+/* ── Mobile (≤ 600px) ── */
+@media (max-width: 600px) {
+  .main {
+    padding: 16px 12px;
+  }
+
+  .header {
+    padding: 0 12px;
+    height: 60px;
+  }
+
+  .layout-body {
+    padding-top: 60px;
+  }
+
+  .sidebar {
+    top: 60px;
+  }
+
+  .dashboard-kpis,
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .page-title h2 { font-size: 24px; }
+
+  .page-title .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ticket-list-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ticket-table thead { display: none; }
+
+  .ticket-table,
+  .ticket-table tbody,
+  .ticket-table tr,
+  .ticket-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ticket-row {
+    padding: 0;
+    border-bottom: 2px solid var(--gray-200);
+  }
+
+  .ticket-table td {
+    padding: 6px 16px;
+    border-bottom: none;
+    font-size: 13px;
+  }
+
+  .ticket-table td:first-child { padding-top: 14px; font-weight: 700; }
+  .ticket-table td:last-child  { padding-bottom: 14px; }
+
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  .modal-header { padding: 20px 20px 12px; }
+  .modal-body   { padding: 12px 20px; }
+  .modal-footer {
+    padding: 12px 20px 24px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .btn-ghost,
+  .modal-footer .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ticket-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .ticket-toolbar-search input { max-width: 100%; }
+
+  .ticket-toolbar-filters {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .status-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .status-tab { white-space: nowrap; }
+
+  .priority-ticket-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .ticket-info { width: 100%; }
+  .btn-assign  { align-self: flex-end; }
+
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+/* ── Ajuste fino ≤ 400px ── */
+@media (max-width: 400px) {
+  .brand-text span { display: none; }
+  .header-brand .logo-icon { width: 36px; height: 36px; font-size: 14px; }
+  .kpi-card  { padding: 14px; }
+  .kpi-value { font-size: 24px; }
+}
