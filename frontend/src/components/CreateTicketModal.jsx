@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
 import { createTicket, fetchFormFields } from '../services/ticket.service.js';
 
-// Suporta prioridade 4 = Crítica
 const PRIORITY_LABELS = {
-  1: { label: '🟢 Baixa',    color: '#22c55e' },
-  2: { label: '🟡 Média',    color: '#eab308' },
-  3: { label: '🟠 Alta',     color: '#f97316' },
-  4: { label: '🔴 Crítica',  color: '#ef4444' },
+  1: { label: '\uD83D\uDFE2 Baixa',   color: '#22c55e' },
+  2: { label: '\uD83D\uDFE1 M\u00E9dia',   color: '#eab308' },
+  3: { label: '\uD83D\uDFE0 Alta',    color: '#f97316' },
+  4: { label: '\uD83D\uDD34 Cr\u00EDtica', color: '#ef4444' },
 };
 
-// Override de subcategorias que elevam a prioridade acima da categoria-pai
+// Subcategorias que elevam a prioridade acima da categoria-pai
 const SUBCATEGORY_PRIORITY_OVERRIDE = {
-  'Comprometimento de Conta':          4,
-  'Bloqueio de Conta':                 4,
-  'Equipamento com Falha Total':       3,
-  'Sistema Indisponível':              4,
-  'Risco de Queda / Estrutura Crítica': 4,
-  'Servidor Fora do Ar':               4,
-  'Sistema Fora do Ar':                4,
-  'Curto-Circuito / Risco Elétrico':   4,
+  'Comprometimento de Conta': 4,
+  'Bloqueio de Conta': 4,
+  'Equipamento com Falha Total': 3,
+  'Sistema Indispon\u00EDvel': 4,
+  'Risco de Queda / Estrutura Cr\u00EDtica': 4,
+  'Servidor Fora do Ar': 4,
+  'Sistema Fora do Ar': 4,
+  'Curto-Circuito / Risco El\u00E9trico': 4,
 };
 
 function resolvePriority(categoryPriority, subcategory) {
@@ -27,9 +26,9 @@ function resolvePriority(categoryPriority, subcategory) {
 }
 
 export default function CreateTicketModal({ onClose, onCreated }) {
-  const [catalog, setCatalog]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [catalog, setCatalog] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedGroup, setSelectedGroup]       = useState('');
@@ -41,7 +40,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
   useEffect(() => {
     fetchFormFields()
       .then((data) => setCatalog(data.catalog ?? []))
-      .catch(() => setError('Erro ao carregar opções do formulário'))
+      .catch(() => setError('Erro ao carregar op\u00E7\u00F5es do formul\u00E1rio'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -66,8 +65,8 @@ export default function CreateTicketModal({ onClose, onCreated }) {
   }
 
   async function handleSubmit() {
-    if (title.trim().length < 3)  return setError('Título deve ter ao menos 3 caracteres');
-    if (body.trim().length < 10)  return setError('Descrição deve ter ao menos 10 caracteres');
+    if (title.trim().length < 3)  return setError('T\u00EDtulo deve ter ao menos 3 caracteres');
+    if (body.trim().length < 10)  return setError('Descri\u00E7\u00E3o deve ter ao menos 10 caracteres');
     if (!selectedGroup)            return setError('Selecione um grupo');
     if (!selectedCategory)         return setError('Selecione uma categoria');
     if (subcategories.length > 0 && !selectedSub)
@@ -94,7 +93,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-body"><p>Carregando opções...</p></div>
+          <div className="modal-body"><p>Carregando op\u00E7\u00F5es...</p></div>
         </div>
       </div>
     );
@@ -106,7 +105,7 @@ export default function CreateTicketModal({ onClose, onCreated }) {
         <div className="modal-stripe" />
         <div className="modal-header">
           <h3>Abrir Novo Chamado</h3>
-          <button className="btn-close" onClick={onClose}>✕</button>
+          <button className="btn-close" onClick={onClose}>\u2715</button>
         </div>
 
         <div className="modal-body">
@@ -205,14 +204,14 @@ export default function CreateTicketModal({ onClose, onCreated }) {
 
           {/* Descrição */}
           <div className="field">
-            <label>Descrição detalhada</label>
+            <label>Descri\u00E7\u00E3o detalhada</label>
             <textarea
               required
               rows={5}
               maxLength={10000}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Forneça todos os detalhes necessários para o atendimento..."
+              placeholder="Forne\u00E7a todos os detalhes necess\u00E1rios para o atendimento..."
               disabled={submitting}
             />
           </div>

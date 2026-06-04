@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { login } from '../services/auth.service.js';
-import { redirectToMicrosoftLogin } from '../services/microsoft.service.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import SerGasLogo from '../components/SerGasLogo.jsx';
 import AdminChoiceModal from '../components/AdminChoiceModal.jsx';
@@ -19,7 +18,6 @@ export default function LoginPage() {
   const [form, setForm]           = useState({ email: '', password: '' });
   const [error, setError]         = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
 
   // Estado do modal admin: null = fechado, { zammadUrl, userData } = aberto
   const [adminChoice, setAdminChoice] = useState(null);
@@ -52,16 +50,6 @@ export default function LoginPage() {
   function handleGoToDashboard() {
     setUser(adminChoice.userData);
     navigate('/admin/report', { replace: true });
-  }
-
-  async function handleMicrosoftLogin() {
-    setMicrosoftLoading(true);
-    try {
-      await redirectToMicrosoftLogin();
-    } catch (err) {
-      setError('Erro ao conectar com Microsoft. Tente novamente.');
-      setMicrosoftLoading(false);
-    }
   }
 
   return (
@@ -161,29 +149,6 @@ export default function LoginPage() {
               {submitting ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
-
-          <div className="lp-divider-text">ou</div>
-
-          <button 
-            type="button" 
-            className="lp-btn-microsoft" 
-            disabled={microsoftLoading}
-            onClick={handleMicrosoftLogin}
-          >
-            {microsoftLoading ? (
-              <>
-                <span className="lp-loader-small"></span>
-                Conectando...
-              </>
-            ) : (
-              <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '8px'}}>
-                  <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z"/>
-                </svg>
-                Entrar com Microsoft 365
-              </>
-            )}
-          </button>
 
           <a href={ZAMMAD_RESET_URL} target="_blank" rel="noreferrer" className="lp-btn-ghost-link">
             Esqueci minha senha
