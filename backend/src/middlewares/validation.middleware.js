@@ -8,12 +8,15 @@ const loginSchema = z.object({
 const createTicketSchema = z.object({
   title:               z.string().min(3).max(200).trim(),
   body:                z.string().min(10).max(10000).trim(),
+  // nullish + transform: aceita null/undefined do frontend e normaliza para undefined
   category:            z.string().max(200).trim().nullish().transform(v => v ?? undefined),
   subcategory:         z.string().max(200).trim().nullish().transform(v => v ?? undefined),
+  // Suporta prioridade 4 = Crítica (necessário para subcategorias críticas do Zammad)
   priority:            z.enum(['1', '2', '3', '4']).optional().default('2'),
   group:               z.string().max(200).trim().nullish(),
   classificationField: z.string().max(120).trim().nullish(),
   classificationValue: z.string().max(300).trim().nullish(),
+  // Aceita null nos valores para permitir limpeza de campos dinâmicos do Zammad
   ticketAttributes:    z
     .record(
       z.string().max(120),
@@ -31,6 +34,12 @@ const changeStatusSchema = z.object({
 
 const addUpdateSchema = z.object({
   message: z.string().min(3).max(5000).trim(),
+});
+
+// Schema para criação de avisos (módulo notices de main)
+const createNoticeSchema = z.object({
+  title:   z.string().max(200).trim().optional(),
+  message: z.string().min(1).max(5000).trim(),
 });
 
 function validate(schema) {
@@ -51,6 +60,7 @@ export const validateLogin          = validate(loginSchema);
 export const validateCreateTicket   = validate(createTicketSchema);
 export const validateChangeStatus   = validate(changeStatusSchema);
 export const validateAddUpdate      = validate(addUpdateSchema);
+export const validateCreateNotice   = validate(createNoticeSchema);
 
 const forgotPasswordSchema = z.object({
   email: z.string().email().max(254),

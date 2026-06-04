@@ -6,6 +6,7 @@ import { fetchFormFields } from '../services/ticket.service.js';
 import SerGasLogo from '../components/SerGasLogo.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
 import TicketDrawer from '../components/TicketDrawer.jsx';
+import NoticesHighlight from '../components/NoticesHighlight.jsx';
 
 const STATUS_TABS = [
   { key: '', label: 'Todos' },
@@ -30,17 +31,16 @@ const STATUS_LABELS = {
 };
 
 const PRIO_LABELS = { 1: '🟢 Baixa', 2: '🟡 Média', 3: '🟠 Alta', 4: '🔴 Crítico' };
-const PRIO_CLASS = { 1: 'prio prio-1', 2: 'prio prio-2', 3: 'prio prio-3', 4: 'prio prio-4' };
+const PRIO_CLASS  = { 1: 'prio prio-1', 2: 'prio prio-2', 3: 'prio prio-3', 4: 'prio prio-4' };
 
-//cd ban Cores para os cabeçalhos de prioridade
 const PRIO_HEADER_COLORS = {
-  4: '#D94040', // Crítico - Vermelho
-  3: '#D96010', // Alta - Laranja escuro
-  2: '#F4A820', // Média - Laranja
-  1: '#1E9E5F', // Baixa - Verde
+  4: '#D94040',
+  3: '#D96010',
+  2: '#F4A820',
+  1: '#1E9E5F',
 };
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE           = 15;
 const ITEMS_PER_PRIORITY_GROUP = 5;
 
 function getInitials(name = '') {
@@ -55,43 +55,30 @@ export default function TechDashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // ── Sidebar responsiva (hamburger) ──────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Estado de dados completos
-  const [allTickets, setAllTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // ── Dados ────────────────────────────────────────────────────────────────────
+  const [allTickets, setAllTickets]   = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
   const [actionError, setActionError] = useState('');
 
-  // Estado de filtros
-  const [activeTab, setActiveTab] = useState('');
-  const [timeFilter, setTimeFilter] = useState('');
-  const [myOnly, setMyOnly] = useState(false);
-
-  // Grupos carregados da API (mesmo do modal de criação)
-  const [groups, setGroups] = useState([]);
-
-  useEffect(() => {
-    fetchFormFields()
-      .then(data => setGroups(data.groups || []))
-      .catch(() => { });
-  }, []);
-
-  // Estado de visualização
-  const [viewMode, setViewMode] = useState('table'); // 'table' ou 'priority'
-
+  // ── Filtros ──────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab]           = useState('');
+  const [timeFilter, setTimeFilter]         = useState('');
+  const [myOnly, setMyOnly]                 = useState(false);
+  const [groups, setGroups]                 = useState([]);
+  const [viewMode, setViewMode]             = useState('table');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [search, setSearch]                 = useState('');
+  const [sortBy, setSortBy]                 = useState('date');
+  const [sortOrder, setSortOrder]           = useState('desc');
 
-  // Estado de paginação para modo tabela
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Drawer
+  // ── Paginação e drawer ───────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage]   = useState(1);
   const [drawerTicket, setDrawerTicket] = useState(null);
 
-  // Estado para visualização incremental no modo prioridade
   const [expandedPriorities, setExpandedPriorities] = useState({
     4: ITEMS_PER_PRIORITY_GROUP,
     3: ITEMS_PER_PRIORITY_GROUP,
@@ -99,16 +86,21 @@ export default function TechDashboardPage() {
     1: ITEMS_PER_PRIORITY_GROUP,
   });
 
-  // Carregar dados da API uma única vez (quando filtros de requisição mudam)
+  useEffect(() => {
+    fetchFormFields()
+      .then(data => setGroups(data.groups || []))
+      .catch(() => {});
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     setActionError('');
-    setCurrentPage(1); // Resetar para primeira página ao aplicar filtros
-    setExpandedPriorities({ 4: ITEMS_PER_PRIORITY_GROUP, 3: ITEMS_PER_PRIORITY_GROUP, 2: ITEMS_PER_PRIORITY_GROUP, 1: ITEMS_PER_PRIORITY_GROUP }); // Resetar visualização incremental
+    setCurrentPage(1);
+    setExpandedPriorities({ 4: ITEMS_PER_PRIORITY_GROUP, 3: ITEMS_PER_PRIORITY_GROUP, 2: ITEMS_PER_PRIORITY_GROUP, 1: ITEMS_PER_PRIORITY_GROUP });
     try {
       const data = await fetchTechTickets({
-        status: activeTab || undefined,
+        status:      activeTab || undefined,
         assigned_to: myOnly ? String(user.id) : undefined,
       });
       setAllTickets(data);
@@ -127,7 +119,6 @@ export default function TechDashboardPage() {
     navigate('/login', { replace: true });
   }
 
-  // Função para assumir um chamado
   async function handleAssignTicket(ticketId, e) {
     e.stopPropagation();
     setActionError('');
@@ -145,60 +136,40 @@ export default function TechDashboardPage() {
     const seen = new Set(ticketGroups.map(g => g.toLowerCase()));
     const allOptions = [...ticketGroups];
     for (const g of groups) {
-      if (!seen.has(g.toLowerCase())) {
-        allOptions.push(g);
-        seen.add(g.toLowerCase());
-      }
+      if (!seen.has(g.toLowerCase())) { allOptions.push(g); seen.add(g.toLowerCase()); }
     }
     return allOptions.filter(g => g !== 'Users').sort();
   }, [allTickets, groups]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, search, sortBy, sortOrder]);
+  useEffect(() => { setCurrentPage(1); }, [selectedCategory, search, sortBy, sortOrder]);
 
-  // Calcular dados paginados e estatísticas com base nos dados filtrados
   const { filteredTickets, paginatedTickets, totalPages, stats, priorityGroups } = useMemo(() => {
-    // 1. Aplicar filtro de tempo no front-end
     let timeFiltered = allTickets;
-
     if (timeFilter) {
-      const selectedFilter = TIME_FILTERS.find(f => f.key === timeFilter);
-      if (selectedFilter) {
-        const now = Math.floor(Date.now() / 1000);
-        const threshold = now - (selectedFilter.hours * 3600);
+      const sel = TIME_FILTERS.find(f => f.key === timeFilter);
+      if (sel) {
+        const threshold = Math.floor(Date.now() / 1000) - (sel.hours * 3600);
         timeFiltered = timeFiltered.filter(t => t.updatedAt >= threshold);
       }
     }
 
-    // 2. Calcular estatísticas com base nos dados filtrados por tempo
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = Math.floor(today.getTime() / 1000);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayTs = Math.floor(today.getTime() / 1000);
 
     const calculatedStats = {
-      total: timeFiltered.length,
-      resolvedToday: allTickets.filter(t => {
-        if (t.status !== 'fechado') return false;
-        return t.updatedAt >= todayTimestamp;
-      }).length,
-      inProgress: timeFiltered.filter(t => t.status === 'em_andamento').length,
-      high: timeFiltered.filter(t => t.priority_id === 3).length,
+      total:         timeFiltered.length,
+      resolvedToday: allTickets.filter(t => t.status === 'fechado' && t.updatedAt >= todayTs).length,
+      inProgress:    timeFiltered.filter(t => t.status === 'em_andamento').length,
+      high:          timeFiltered.filter(t => t.priority_id === 3).length,
     };
 
-    // 3. Aplicar filtros de categoria, busca e ordenação (como no TicketList)
     let filtered = timeFiltered;
-    if (selectedCategory) {
-      filtered = filtered.filter(t => effectiveGroup(t) === selectedCategory);
-    }
+    if (selectedCategory) filtered = filtered.filter(t => effectiveGroup(t) === selectedCategory);
     if (search.trim()) {
       const q = search.toLowerCase();
       filtered = filtered.filter(t =>
         [t.title, t.number, String(t.zammadId ?? ''), effectiveGroup(t), t.subcategory]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(q)
+          .filter(Boolean).join(' ').toLowerCase().includes(q)
       );
     }
     if (sortBy === 'date') {
@@ -210,20 +181,16 @@ export default function TechDashboardPage() {
     if (sortBy === 'priority') {
       filtered = [...filtered].sort((a, b) => {
         const dir = sortOrder === 'asc' ? 1 : -1;
-        const prioDiff = ((a.priority_id ?? 2) - (b.priority_id ?? 2)) * dir;
-        if (prioDiff !== 0) return prioDiff;
-        return ((a.updatedAt ?? 0) - (b.updatedAt ?? 0));
+        const d = ((a.priority_id ?? 2) - (b.priority_id ?? 2)) * dir;
+        return d !== 0 ? d : (a.updatedAt ?? 0) - (b.updatedAt ?? 0);
       });
     }
 
-    // 4. Calcular paginação para modo tabela
-    const total = filtered.length;
-    const pages = Math.ceil(total / ITEMS_PER_PAGE) || 1;
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    const paginated = filtered.slice(start, end);
+    const total    = filtered.length;
+    const pages    = Math.ceil(total / ITEMS_PER_PAGE) || 1;
+    const start    = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginated = filtered.slice(start, start + ITEMS_PER_PAGE);
 
-    // 5. Agrupar por prioridade para modo prioridade
     const grouped = {
       4: filtered.filter(t => (t.priority_id ?? 2) === 4),
       3: filtered.filter(t => (t.priority_id ?? 2) === 3),
@@ -231,48 +198,23 @@ export default function TechDashboardPage() {
       1: filtered.filter(t => (t.priority_id ?? 2) === 1),
     };
 
-    return {
-      filteredTickets: filtered,
-      paginatedTickets: paginated,
-      totalPages: pages,
-      stats: calculatedStats,
-      priorityGroups: grouped,
-    };
+    return { filteredTickets: filtered, paginatedTickets: paginated, totalPages: pages, stats: calculatedStats, priorityGroups: grouped };
   }, [allTickets, currentPage, timeFilter, selectedCategory, search, sortBy, sortOrder]);
 
-  // Funções de navegação de páginas
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
+  const goToNextPage     = () => { if (currentPage < totalPages) setCurrentPage(p => p + 1); };
+  const goToPreviousPage = () => { if (currentPage > 1) setCurrentPage(p => p - 1); };
 
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // Função para exibir mais itens de um grupo de prioridade
   const showMorePriority = (prioId) => {
-    setExpandedPriorities(prev => {
-      const current = prev[prioId] || ITEMS_PER_PRIORITY_GROUP;
-      return {
-        ...prev,
-        [prioId]: Math.min(current + ITEMS_PER_PRIORITY_GROUP, priorityGroups[prioId].length),
-      };
-    });
-  };
-
-  // Função para recolher os itens de um grupo de prioridade para o padrão
-  const collapsePriority = (prioId) => {
     setExpandedPriorities(prev => ({
       ...prev,
-      [prioId]: ITEMS_PER_PRIORITY_GROUP,
+      [prioId]: Math.min((prev[prioId] || ITEMS_PER_PRIORITY_GROUP) + ITEMS_PER_PRIORITY_GROUP, priorityGroups[prioId].length),
     }));
   };
 
-  // Função para obter tickets visíveis de um grupo de prioridade
+  const collapsePriority = (prioId) => {
+    setExpandedPriorities(prev => ({ ...prev, [prioId]: ITEMS_PER_PRIORITY_GROUP }));
+  };
+
   const getVisibleTicketsForPriority = (prioId) => {
     const limit = expandedPriorities[prioId] || ITEMS_PER_PRIORITY_GROUP;
     return priorityGroups[prioId].slice(0, limit);
@@ -280,8 +222,10 @@ export default function TechDashboardPage() {
 
   return (
     <div className="layout">
+      {/* ── Header ────────────────────────────────────────────────────────────── */}
       <header className="header">
         <div className="header-brand">
+          {/* Hamburger — responsividade mobile (de Area-do-Tecnico) */}
           <button className="hamburger-btn" onClick={() => setSidebarOpen(v => !v)} aria-label="Menu">
             {sidebarOpen
               ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -306,14 +250,17 @@ export default function TechDashboardPage() {
       </header>
 
       <div className="layout-body">
+        {/* Overlay para fechar sidebar no mobile */}
         <div className={`sidebar-overlay${sidebarOpen ? ' open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
+        {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
         <nav className={`sidebar${sidebarOpen ? ' open' : ''}`}>
           <div className="nav-section-label">Operacional</div>
           <a className="nav-item active" style={{ cursor: 'pointer' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
             Fila de Chamados
           </a>
+
           <div className="nav-section-label" style={{ marginTop: 20 }}>Filtros Rápidos</div>
           <label className="nav-item" style={{ cursor: 'pointer', userSelect: 'none' }}>
             <input type="checkbox" checked={myOnly} onChange={e => setMyOnly(e.target.checked)} style={{ marginRight: 10, accentColor: 'var(--orange)' }} />
@@ -321,7 +268,11 @@ export default function TechDashboardPage() {
           </label>
         </nav>
 
+        {/* ── Main ────────────────────────────────────────────────────────────── */}
         <main className="main">
+          {/* Avisos em destaque (de main) */}
+          <NoticesHighlight />
+
           <div className="page-title">
             <div>
               <h2>Fila de Atendimento</h2>
@@ -353,7 +304,7 @@ export default function TechDashboardPage() {
             </div>
           </div>
 
-          {/* Tabs de status, Filtro de Tempo e botão de modo de visualização */}
+          {/* Tabs + Filtro de tempo + Toggle de visualização */}
           <div className="filters-and-view-mode">
             <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
               <div className="status-tabs" style={{ marginBottom: 0 }}>
@@ -380,7 +331,6 @@ export default function TechDashboardPage() {
               </select>
             </div>
 
-            {/* Botão de alternância de modo */}
             <div className="view-mode-toggle">
               <button
                 className={`view-mode-btn ${viewMode === 'table' ? 'active' : ''}`}
@@ -388,9 +338,7 @@ export default function TechDashboardPage() {
                 title="Visualização em tabela"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
                 </svg>
                 Tabela
               </button>
@@ -400,7 +348,7 @@ export default function TechDashboardPage() {
                 title="Visualização por prioridade"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
-                  <path d="M12 5v14M5 12h14"></path>
+                  <path d="M12 5v14M5 12h14"/>
                 </svg>
                 Prioridade
               </button>
@@ -411,7 +359,7 @@ export default function TechDashboardPage() {
             <div className="ticket-toolbar-search">
               <input
                 type="search"
-                placeholder="Buscar por n\u00famero, assunto ou categoria..."
+                placeholder="Buscar por número, assunto ou categoria..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -440,13 +388,13 @@ export default function TechDashboardPage() {
                   onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
                   title={sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
                 >
-                  {sortOrder === 'asc' ? '\u2191' : '\u2193'}
+                  {sortOrder === 'asc' ? '↑' : '↓'}
                 </button>
               </div>
             </div>
           </div>
 
-          {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>{error}</div>}
+          {error       && <div className="alert alert-error" style={{ marginBottom: 20 }}>{error}</div>}
           {actionError && <div className="alert alert-error" style={{ marginBottom: 20 }}>{actionError}</div>}
 
           {loading ? (
@@ -460,7 +408,6 @@ export default function TechDashboardPage() {
               <p style={{ color: 'var(--gray-600)', fontSize: 15 }}>Nenhum chamado encontrado para este filtro.</p>
             </div>
           ) : viewMode === 'table' ? (
-            // MODO TABELA - 100% intacto
             <>
               <div className="ticket-list-wrapper">
                 <table className="ticket-table">
@@ -482,12 +429,8 @@ export default function TechDashboardPage() {
                           <td><span className="ticket-id">#{t.number ?? t.zammadId}</span></td>
                           <td>
                             <div className="ticket-subject">{t.title}</div>
-                            {effectiveGroup(t) && (
-                              <div className="ticket-group-name">{effectiveGroup(t)}</div>
-                            )}
-                            {t.subcategory && (
-                              <div className="ticket-category-sub">{t.subcategory}</div>
-                            )}
+                            {effectiveGroup(t) && <div className="ticket-group-name">{effectiveGroup(t)}</div>}
+                            {t.subcategory   && <div className="ticket-category-sub">{t.subcategory}</div>}
                           </td>
                           <td>
                             <span className={PRIO_CLASS[prioId] ?? 'prio prio-2'}>
@@ -506,49 +449,31 @@ export default function TechDashboardPage() {
                 </table>
               </div>
 
-              {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="pagination-container">
-                  <button
-                    className="pagination-btn"
-                    onClick={goToPreviousPage}
-                    disabled={currentPage === 1}
-                    title="Página anterior"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
+                  <button className="pagination-btn" onClick={goToPreviousPage} disabled={currentPage === 1} title="Página anterior">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
                     Anterior
                   </button>
-
                   <div className="pagination-info">
                     Página <span className="page-number">{currentPage}</span> de <span className="page-number">{totalPages}</span>
                     <span className="pagination-divider">•</span>
                     <span className="items-info">{paginatedTickets.length} de {filteredTickets.length} itens</span>
                   </div>
-
-                  <button
-                    className="pagination-btn"
-                    onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    title="Próxima página"
-                  >
+                  <button className="pagination-btn" onClick={goToNextPage} disabled={currentPage === totalPages} title="Próxima página">
                     Próximo
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
                 </div>
               )}
             </>
           ) : (
-            // MODO PRIORIDADE
             <div className="priority-view">
               {[4, 3, 2, 1].map(prioId => {
-                const tickets = priorityGroups[prioId];
+                const tickets        = priorityGroups[prioId];
                 const visibleTickets = getVisibleTicketsForPriority(prioId);
-                const hasMore = visibleTickets.length < tickets.length;
-                const isExpanded = (expandedPriorities[prioId] || ITEMS_PER_PRIORITY_GROUP) > ITEMS_PER_PRIORITY_GROUP;
+                const hasMore        = visibleTickets.length < tickets.length;
+                const isExpanded     = (expandedPriorities[prioId] || ITEMS_PER_PRIORITY_GROUP) > ITEMS_PER_PRIORITY_GROUP;
 
                 return (
                   <div key={prioId} className="priority-group">
@@ -560,39 +485,25 @@ export default function TechDashboardPage() {
                     </div>
 
                     {tickets.length === 0 ? (
-                      <div className="priority-empty">
-                        <p>Nenhum chamado com esta prioridade</p>
-                      </div>
+                      <div className="priority-empty"><p>Nenhum chamado com esta prioridade</p></div>
                     ) : (
                       <>
                         <div className="priority-list">
                           {visibleTickets.map(t => (
-                            <div
-                              key={t.id}
-                              className="priority-ticket-item"
-                              onClick={() => navigate(`/tech/tickets/${t.id}`)}
-                            >
+                            <div key={t.id} className="priority-ticket-item" onClick={() => navigate(`/tech/tickets/${t.id}`)}>
                               <div className="ticket-info">
                                 <div className="ticket-number">#{t.number ?? t.zammadId}</div>
                                 <div className="ticket-details">
                                   <div className="ticket-title">{t.title}</div>
                                   <div className="ticket-meta">
-                                    {effectiveGroup(t) && (
-                                      <span className="ticket-group">{effectiveGroup(t)}</span>
-                                    )}
-                                    {t.subcategory && (
-                                      <span className="ticket-group">{t.subcategory}</span>
-                                    )}
+                                    {effectiveGroup(t) && <span className="ticket-group">{effectiveGroup(t)}</span>}
+                                    {t.subcategory      && <span className="ticket-group">{t.subcategory}</span>}
                                     <span className={`badge badge-status-local-${t.status}`}>{STATUS_LABELS[t.status]}</span>
                                     <span className="ticket-assigned">{t.assignedName ?? 'Não atribuído'}</span>
                                   </div>
                                 </div>
                               </div>
-                              <button
-                                className="btn btn-assign"
-                                onClick={(e) => handleAssignTicket(t.id, e)}
-                                title="Assumir chamado"
-                              >
+                              <button className="btn btn-assign" onClick={(e) => handleAssignTicket(t.id, e)} title="Assumir chamado">
                                 Assumir
                               </button>
                             </div>
@@ -600,20 +511,14 @@ export default function TechDashboardPage() {
                         </div>
 
                         {(hasMore || isExpanded) && (
-                          <div className="priority-footer" style={{ display: 'flex', gap: "20px", justifyContent: 'center', padding: '12px 0' }}>
+                          <div className="priority-footer" style={{ display: 'flex', gap: '20px', justifyContent: 'center', padding: '12px 0' }}>
                             {visibleTickets.length < tickets.length && (
-                              <button
-                                className="btn-show-more"
-                                onClick={() => showMorePriority(prioId)}
-                              >
+                              <button className="btn-show-more" onClick={() => showMorePriority(prioId)}>
                                 ▶ Exibir mais ({tickets.length - visibleTickets.length} restantes)
                               </button>
                             )}
                             {isExpanded && (
-                              <button
-                                className="btn-show-more"
-                                onClick={() => collapsePriority(prioId)}
-                              >
+                              <button className="btn-show-more" onClick={() => collapsePriority(prioId)}>
                                 ◀ Ver menos
                               </button>
                             )}

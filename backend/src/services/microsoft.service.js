@@ -1,3 +1,20 @@
+/**
+ * microsoft.service.js — OAuth2 Microsoft 365 (Authorization Code Flow)
+ *
+ * Lógica robusta de Area-do-Tecnico:
+ *   - Proteção CSRF via state de uso único (TTL 10 min)
+ *   - Troca do code por tokens server-side (client_secret)
+ *   - Validação do id_token (aud, iss, exp)
+ *   - Sincronização com Zammad para obter role
+ *   - Emissão de sessão local (JWT + refreshToken) compatível com auth.service.js
+ *
+ * Variáveis de ambiente esperadas (via config/env.js):
+ *   MICROSOFT_CLIENT_ID     (ou AZURE_CLIENT_ID como alias)
+ *   MICROSOFT_CLIENT_SECRET (ou AZURE_CLIENT_SECRET como alias)
+ *   MICROSOFT_TENANT_ID     (ou AZURE_TENANT_ID como alias) — opcional, default: 'common'
+ *   FRONTEND_URL            — usado para construir o redirect_uri
+ */
+
 import { randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -6,15 +23,15 @@ import { getUserByEmail } from './zammad.service.js';
 import { refreshTokenStore } from './auth.service.js';
 import { logger } from '../config/logger.js';
 
-// Map de states CSRF: state → timeout handle (uso único, TTL 10 min)
+// Map de states CSRF: state → true (uso único, TTL 10 min)
 const stateStore = new Map();
 
 /**
- * Retorna true se as variáveis Azure estão configuradas.
+ * Retorna true se as variáveis Microsoft estão configuradas.
  * Usado como feature flag — botão MS só aparece quando true.
  */
 export function isMsConfigured() {
-  return !!(env.AZURE_CLIENT_ID && env.AZURE_CLIENT_SECRET);
+  return !!(env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET);
 }
 
 /**
@@ -25,8 +42,7 @@ export function generateState() {
   const state = randomBytes(20).toString('hex');
   const timer = setTimeout(() => {
     stateStore.delete(state);
-  }, 10 * 60 * 1000); // 10 minutos
-  // Permite que o timer não impeça o processo de encerrar
+  }, 10 * 60 * 1000);
   if (timer.unref) timer.unref();
   stateStore.set(state, true);
   return state;
@@ -42,17 +58,24 @@ export function consumeState(state) {
 }
 
 /**
+ * Retorna a URL de autorização da Microsoft.
+ * O auth.controller.js chama esta função e retorna a URL ao frontend.
+ */
+export function getAuthorizationUrl() {
+  const state = generateState();
+  return buildAuthorizationUrl(state);
+}
+
+/**
  * Constrói a URL de autorização da Microsoft.
  * redirect_uri aponta para o backend (que recebe o callback OAuth2).
  */
 export function buildAuthorizationUrl(state) {
-  const tenant = env.AZURE_TENANT_ID || 'common';
-  // FRONTEND_URL pode ter múltiplos domínios separados por vírgula; usa o primeiro
-  const baseUrl = env.FRONTEND_URL.split(',')[0].trim();
-  const redirectUri = `${baseUrl}/api/auth/microsoft/callback`;
+  const tenant      = env.MICROSOFT_TENANT_ID || 'common';
+  const redirectUri = _getRedirectUri();
 
   const params = new URLSearchParams({
-    client_id:     env.AZURE_CLIENT_ID,
+    client_id:     env.MICROSOFT_CLIENT_ID,
     response_type: 'code',
     redirect_uri:  redirectUri,
     response_mode: 'query',
@@ -65,16 +88,23 @@ export function buildAuthorizationUrl(state) {
 
 /**
  * Troca o authorization code pelos tokens da Microsoft (server-side, via client_secret).
+ * Compatível com o auth.controller.js de main que chama getAccessTokenFromCode(code).
+ */
+export async function getAccessTokenFromCode(code) {
+  return exchangeCodeForTokens(code);
+}
+
+/**
+ * Troca o authorization code pelos tokens da Microsoft.
  * Usa fetch() nativo do Node 18+.
  */
 export async function exchangeCodeForTokens(code) {
-  const tenant = env.AZURE_TENANT_ID || 'common';
-  const baseUrl = env.FRONTEND_URL.split(',')[0].trim();
-  const redirectUri = `${baseUrl}/api/auth/microsoft/callback`;
+  const tenant      = env.MICROSOFT_TENANT_ID || 'common';
+  const redirectUri = _getRedirectUri();
 
   const body = new URLSearchParams({
-    client_id:     env.AZURE_CLIENT_ID,
-    client_secret: env.AZURE_CLIENT_SECRET,
+    client_id:     env.MICROSOFT_CLIENT_ID,
+    client_secret: env.MICROSOFT_CLIENT_SECRET,
     grant_type:    'authorization_code',
     code,
     redirect_uri:  redirectUri,
@@ -100,22 +130,38 @@ export async function exchangeCodeForTokens(code) {
 }
 
 /**
+ * Busca o usuário Microsoft via Graph API.
+ * Compatível com o auth.controller.js de main que chama getMicrosoftUser(access_token).
+ */
+export async function getMicrosoftUser(accessToken) {
+  const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch Microsoft user profile');
+  }
+
+  const profile = await response.json();
+  // Normaliza para ter email no campo 'mail' (Graph retorna 'mail' ou 'userPrincipalName')
+  return {
+    ...profile,
+    mail: profile.mail || profile.userPrincipalName,
+  };
+}
+
+/**
  * Valida o id_token retornado pela Microsoft.
  * Verifica: aud (client_id), iss (com tid real), exp.
- * Usa jwt.decode (sem verificar assinatura) pois a troca server-to-server
- * pelo code + client_secret já garante autenticidade do token.
- * Para validação de assinatura completa, seria necessário buscar JWKS da Microsoft.
  */
 export function validateIdToken(idToken) {
   const decoded = jwt.decode(idToken, { complete: false });
   if (!decoded) throw new Error('Invalid id_token: could not decode');
 
-  // Validar audiência
-  if (decoded.aud !== env.AZURE_CLIENT_ID) {
+  if (decoded.aud !== env.MICROSOFT_CLIENT_ID) {
     throw new Error('Invalid id_token: aud mismatch');
   }
 
-  // Validar issuer com o tid real do token
   const tid = decoded.tid;
   const validIssuers = [
     `https://login.microsoftonline.com/${tid}/v2.0`,
@@ -125,49 +171,43 @@ export function validateIdToken(idToken) {
     throw new Error('Invalid id_token: iss mismatch');
   }
 
-  // Validar expiração
   const nowSeconds = Math.floor(Date.now() / 1000);
   if (!decoded.exp || decoded.exp < nowSeconds) {
     throw new Error('Invalid id_token: token expired');
   }
 
-  return decoded; // { sub (oid), email, name, preferred_username, tid, ... }
+  return decoded;
 }
 
 /**
- * Busca o usuário no Zammad pelo e-mail da conta Microsoft.
- * Mapeia roles idêntico ao login tradicional.
- * Se o usuário não existir no Zammad, atribui role='user'.
+ * Busca o usuário no Zammad pelo e-mail da conta Microsoft e determina o role.
  */
 export async function syncWithZammad(msClaims) {
   const email = msClaims.email || msClaims.preferred_username;
   if (!email) throw new Error('Microsoft id_token missing email claim');
 
-  let role = 'user';
+  let role     = 'user';
   let zammadId = null;
 
   try {
     const zammadUser = await getUserByEmail(email);
     if (zammadUser?.id) {
-      zammadId = zammadUser.id;
-      const isAdmin = zammadUser.role_ids?.includes(1) || zammadUser.roles?.includes('Admin');
-      const isAgent = zammadUser.role_ids?.includes(2) || zammadUser.roles?.includes('Agent');
+      zammadId         = zammadUser.id;
+      const isAdmin    = zammadUser.role_ids?.includes(1) || zammadUser.roles?.includes('Admin');
+      const isAgent    = zammadUser.role_ids?.includes(2) || zammadUser.roles?.includes('Agent');
       role = isAdmin ? 'admin' : isAgent ? 'technician' : 'user';
     }
   } catch (err) {
-    // Usuário não encontrado no Zammad → role padrão 'user'
     logger.warn({ email, error: err.message }, 'User not found in Zammad; defaulting to role=user');
   }
 
   const name = msClaims.name || msClaims.preferred_username || email;
-
   return { email, name, role, zammadId };
 }
 
 /**
  * Emite uma sessão local (access + refresh token) para o usuário Microsoft.
- * Reutiliza o refreshTokenStore compartilhado de auth.service.js.
- * O payload JWT é idêntico ao do login tradicional (+ flag msLogin).
+ * Reutiliza o refreshTokenStore de auth.service.js.
  */
 export function issueLocalSession(refreshTokenStoreRef, { email, name, role, zammadId, msOid }) {
   const payload = {
@@ -176,7 +216,7 @@ export function issueLocalSession(refreshTokenStoreRef, { email, name, role, zam
     name,
     role,
     zammadId: zammadId || null,
-    msLogin:  true, // flag informativo, não altera fluxo de autorização
+    msLogin:  true,
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
@@ -196,13 +236,19 @@ export function issueLocalSession(refreshTokenStoreRef, { email, name, role, zam
 
   logger.info({ email, role }, 'Microsoft user session issued');
 
-  const user = {
-    sub:      payload.sub,
-    email:    payload.email,
-    name:     payload.name,
-    role:     payload.role,
-    zammadId: payload.zammadId,
+  return {
+    accessToken,
+    refreshToken,
+    user: { sub: payload.sub, email, name, role, zammadId: payload.zammadId },
   };
+}
 
-  return { accessToken, refreshToken, user };
+// ── Helpers privados ───────────────────────────────────────────────────────────
+
+function _getRedirectUri() {
+  // Se MICROSOFT_REDIRECT_URI estiver explicitamente definido, usa ele
+  if (env.MICROSOFT_REDIRECT_URI) return env.MICROSOFT_REDIRECT_URI;
+  // Caso contrário, constrói a partir do FRONTEND_URL (primeiro domínio se múltiplos)
+  const baseUrl = env.FRONTEND_URL.split(',')[0].trim();
+  return `${baseUrl}/api/auth/microsoft/callback`;
 }

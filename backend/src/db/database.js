@@ -16,6 +16,22 @@ export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-logger.info({ path: DB_PATH }, 'Database initialized');
+// Apenas a tabela de avisos persiste localmente.
+// Tickets, status, assignments e histórico vivem no Zammad.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notices (
+    id         TEXT PRIMARY KEY,
+    title      TEXT,
+    message    TEXT NOT NULL,
+    author_id  TEXT NOT NULL,
+    author_name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_notices_expires ON notices(expires_at);
+`);
+
+logger.info({ path: DB_PATH }, 'Database initialized (notices only)');
 
 export default db;
