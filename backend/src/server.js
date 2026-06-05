@@ -6,8 +6,6 @@ import { logger } from './config/logger.js';
  
 const httpServer = http.createServer(app);
  
-initMaintenance();
- 
 const server = httpServer.listen(env.PORT, () => {
   logger.info(`🚀 BFF Server running on port ${env.PORT} [${env.NODE_ENV}]`);
 });
@@ -21,4 +19,3 @@ process.on('unhandledRejection', (reason) => {
   logger.error({ reason }, 'Unhandled rejection');
   process.exit(1);
 });
- 

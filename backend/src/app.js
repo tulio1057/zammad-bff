@@ -56,7 +56,6 @@ app.use(globalLimiter);
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use('/api/tickets',      ticketRoutes);
 app.use('/api/tech',         technicianRoutes);
-app.use('/api/tech/notices', noticeRoutes);
 app.use('/api/setup',        setupRoutes);
 app.use('/api/admin',        adminRoutes);
 
