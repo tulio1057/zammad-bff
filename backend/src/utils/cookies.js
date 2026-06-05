@@ -1,13 +1,17 @@
 import { env } from '../config/env.js';
 
-// Força a detecção de produção ou checa se a URL não é localhost
-const isProd = env.NODE_ENV === 'production' || !env.FRONTEND_URL.includes('localhost');
+// sameSite 'none' + secure obrigatórios para cookies cross-origin (HTTPS).
+// Em dev local (ambos em localhost) 'lax' + secure:false funciona porque
+// o browser trata localhost como same-site.
+const isCrossOrigin =
+  env.NODE_ENV === 'production' ||
+  (env.FRONTEND_URL != null && !env.FRONTEND_URL.split(',').some(u => u.trim().includes('localhost')));
 
 export const cookieOptions = {
   httpOnly: true,
-  secure: isProd,                 // Será true na nuvem
-  sameSite: isProd ? 'none' : 'lax', 
-  path: '/',                      // Deixe '/' visível para todo o app evitar erros de rota
+  secure: isCrossOrigin,
+  sameSite: isCrossOrigin ? 'none' : 'lax',
+  path: '/',
 };
 
 export function setAuthCookies(res, { accessToken, refreshToken }) {
