@@ -8,7 +8,6 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import ticketRoutes from './routes/ticket.routes.js';
 import technicianRoutes from './routes/technician.routes.js';
-import noticeRoutes from './routes/notice.routes.js';
 import setupRoutes from './routes/setup.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
