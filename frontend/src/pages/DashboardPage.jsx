@@ -43,13 +43,13 @@ export default function DashboardPage() {
     <AppLayout subtitle="Atendimento Corporativo" navItems={navItems} onLogout={handleLogout}>
       <section className="institutional-banner">
         <strong>SERGAS</strong>
-        <span>Distribui\u00E7\u00E3o de g\u00E1s natural com foco em seguran\u00E7a, efici\u00EAncia e atendimento.</span>
+        <span>Distribuição de gás natural com foco em segurança, eficiência e atendimento.</span>
       </section>
 
       <div className="page-title">
         <div>
           <h2>Meus Chamados</h2>
-          <p>Acompanhe solicita\u00E7\u00F5es de TI, ERP e suporte operacional</p>
+          <p>Acompanhe solicitações de TI, ERP e suporte operacional</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
           + Novo Chamado

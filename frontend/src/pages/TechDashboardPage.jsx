@@ -29,7 +29,7 @@ const STATUS_LABELS = {
   fechado: 'Fechado',
 };
 
-const PRIO_LABELS = { 1: 'Baixa', 2: 'Média', 3: 'Alta', 4: 'Crítico' };
+const PRIO_LABELS = { 1: '🟢 Baixa', 2: '🟡 Média', 3: '🟠 Alta', 4: '🔴 Crítico' };
 const PRIO_CLASS = { 1: 'prio prio-1', 2: 'prio prio-2', 3: 'prio prio-3', 4: 'prio prio-4' };
 
 //cd ban Cores para os cabeçalhos de prioridade
@@ -411,7 +411,7 @@ export default function TechDashboardPage() {
             <div className="ticket-toolbar-search">
               <input
                 type="search"
-                placeholder="Buscar por n\u00famero, assunto ou categoria..."
+                placeholder="Buscar por número, assunto ou categoria..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -440,7 +440,7 @@ export default function TechDashboardPage() {
                   onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
                   title={sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
                 >
-                  {sortOrder === 'asc' ? '\u2191' : '\u2193'}
+                  {sortOrder === 'asc' ? '↑' : '↓'}
                 </button>
               </div>
             </div>
