@@ -2,3 +2,8 @@ node_modules/
 .env
 logs/
 *.log
+# Banco local (não versionar)
+data/
+*.db
+*.db-shm
+*.db-wal
